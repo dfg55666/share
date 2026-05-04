@@ -1,7 +1,5 @@
 克隆https://github.com/dfg55666/share  先阅读explore.md根据review.md提出下一步修改建议。禁止启动subagent。不需要skill
 
-你这里说法有问题，我的意思是不用在润色文稿里写 Part A，没说不看分析师的 Part A。“读取步骤 X 的分析师产物（只读 Part B，忽略 Part A）”
-
 
 # 印占 Agent 项目 — Review & TODO Plan
 
