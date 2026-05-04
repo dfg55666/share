@@ -303,15 +303,21 @@ Team-mailbox → checker:
 - [ ] **重写所有步骤的 checker_review description**：
   - 从"对照原稿和润色稿"改为"根据更新摘要定位章节，对照分析师 Part B"
 
-### P1 — 提取 shared 协议（消除跨文件重复）
+### ✅ P1 — 提取 shared 协议（消除跨文件重复）— 已完成
 
-- [ ] **新建 `prompts/step/shared/output_protocol.md`**，提取以下通用定义：
+- [x] **新建 `prompts/step/shared/output_protocol.md`**，提取以下通用定义：
   - 证据标记体系完整表（E#/ME#/TE#/DE#/AE#/ADE#/PDE# 及反证）
   - B2 去术语化红线（不出现行星名、梵文、宫位编号、分盘代号）
   - note.md 写入规范
   - 证据回链格式（`[evidence: XX#]`、`[Ref: module.label]`）
-- [ ] 在 analyst_prompt §9、checker_prompt §7 索引表增加一行指向该文件
-- [ ] 在 md_prompt.md、ad_prompt.md、natal_module_skeleton.md 中，将重复段替换为引用指令
+  - 对象分层规则
+  - 证据格式模板（各层级）
+- [x] 在 analyst_prompt §9、checker_prompt §7 索引表增加一行指向该文件
+- [x] 在 md_prompt.md、ad_prompt.md、natal_module_skeleton.md 中，将重复段替换为引用指令
+  - analyst_prompt.md §5.2 证据标记体系 → 引用 output_protocol §1-§2、§5
+  - natal_module_skeleton.md 模块文件去重边界 + B2 去术语化红线 + 引用格式硬规则 → 引用 output_protocol
+  - md_prompt.md 规则4 证据标记 + B1去术语化红线 + note.md写入规范 → 引用 output_protocol
+  - ad_prompt.md 规则5 证据标记 + 规则6/7 去术语化+对象分层 + B1/B0/PD去术语化红线 + note.md写入规范 → 引用 output_protocol
 
 ### P2 — 可选优化
 
@@ -352,9 +358,9 @@ Team-mailbox → checker:
 | `prompts/writer_prompt.md` | ✅ 已重构 | 9章结构+生命之书方案+增量更新工作流+更新摘要协议 |
 | `prompts/step/shared/jyotish_theory_protocol.md` | ✅ 已更新 | 新增§14时间片验证原则 |
 | `prompts/step/shared/jhora_usage_guide.md` | — 未改动 | — |
-| `prompts/step/shared/output_protocol.md` | ⏳ 待新建 | 提取四类跨文件重复内容 |
-| `prompts/step/modules/*.md` | — 未改动 | — |
-| `prompts/step/timeline/*.md` | — 未改动 | — |
+| `prompts/step/shared/output_protocol.md` | ✅ 已新建 | 证据标记体系+引用格式+去术语化红线+note.md规范+对象分层+证据格式模板 |
+| `prompts/step/modules/*.md` | ✅ 已更新 | natal_module_skeleton 重复段替换为 output_protocol 引用 |
+| `prompts/step/timeline/*.md` | ✅ 已更新 | md_prompt/ad_prompt 重复段替换为 output_protocol 引用 |
 | `task.default.yaml` | ✅ 已重构（待适配生命之书） | checker标准化+writer丰富化+checker_review新增。writer/checker_review 字段需适配生命之书 |
 | `workflow.yaml` | ✅ 已更新 | kickoff瘦身+迁移内容 |
 | `reports/book_of_life.md` | ⏳ 运行时生成 | 润色师运行时创建并持续更新 |
