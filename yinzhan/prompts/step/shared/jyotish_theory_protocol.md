@@ -99,3 +99,24 @@ Vargas 红线：不得把 D1 专属的 BAV/SAV 分值套用到任何 Vargas 分�
 - 引用上游证据使用 `[Ref: {module}.{标记}]`，不得把上游证据编号直接混入本层编号。
 - 技法层可以硬核，现实层必须给出可观察事件，不得用抽象术语替代现实表现。
 - 若存在重要反证，必须写入 CE/MCE/DCE/ADCE 等对应反证链，不得只写单向利好。
+
+## 14. 时间片多维验证原则
+
+时间片分析遵循以下五层验证口诀：
+
+> **Dasha 定方向，Transit 给扳机，BAV 验有效，Tajaka 补跨年，Yoga 看激活。**
+
+- **Dasha 定方向**：MD/AD/PD 星的宫主身份、功能性吉凶与本命配置的碰撞，决定了这段时间的主题方向。方向判断是所有后续验证的前提。
+- **Transit 给扳机**：流年行星（尤其 Saturn/Jupiter/Rahu-Ketu 换座）过境关键宫位或关键星体，是事件落地的触发器。没有 Transit 触发的 Dasha 方向只是"潜力"，不是"事件"。
+- **BAV 验有效**：Transit 断语必须附该行运星在对应宫位的 BAV 分值验证。BAV < 4 时 Transit 触发力降级，不得给 high/critical。BAV/SAV 仅限 D1 Rashi Chart，严禁套用于任何 Vargas 分盘。
+- **Tajaka 补跨年**：AD 跨自然年边界时，必须调用 Tajaka 年度盘作辅助验证。Tajaka 是辅证，不得作为单点强断的唯一依据；工具返回异常时不得作为强证。
+- **Yoga 看激活**：本命存在的 Yoga 不自动显化，必须在 Dasha + Transit + BAV 三层验证下确认激活条件是否满足。
+
+### 时间片高频红线
+
+以下红线适用于所有时间片步骤（7-x 及其子步骤）：
+
+1. **high/critical 断语**必须同时具备 Dasha 方向与 Transit 触发，缺任一层则降级为 medium 或以下。
+2. **Transit 触发**必须附 BAV 有效性验证，BAV < 4 时对应断语强制降级。
+3. **AD 跨年**必须参考 Tajaka；Tajaka 工具返回字段异常（如 sign 解码全为 0）时，不得作为 high/critical 主证。
+4. **PD 展开**仅在触发条件满足时执行，起止日期必须来自真实的 `jhora_dasha` rows，不得推算。
