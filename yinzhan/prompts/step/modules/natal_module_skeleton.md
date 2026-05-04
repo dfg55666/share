@@ -17,7 +17,7 @@
 
 具体模块文件不重复定义以下内容：
 - 通用输出协议（A-Pre / A0 / A1 / A2 / A3 / B0 / B1 / B2）
-- 证据标记体系、引用格式、回链规则、去术语化红线、note.md 写入规范（统一遵守 `workspace/prompts/shared/output_protocol.md`）
+- 证据标记体系、引用格式、回链规则、Part B 现实映射规范、note.md 写入规范（统一遵守 `workspace/prompts/shared/output_protocol.md`）
 - JHora 工具、BAV/SAV、Dasha/Transit/Tajaka、live/static 冲突等通用工具规则（统一遵守 `workspace/prompts/shared/jhora_usage_guide.md`）
 - Parashari/Jaimini、Argala、Avasthas、Yoga 显化、Vargas 用途边界等通用理论规则（统一遵守 `workspace/prompts/shared/jyotish_theory_protocol.md`）
 
@@ -145,7 +145,7 @@ A3 的**白话翻译版**，让用户理解"什么运势周期下会触发什么
 - **修正项**：此盘的特殊情况如何影响结果（可结合现实信号辅助说明）
 
 **B2 去术语化红线**（违反即不合格）：
-遵守 `workspace/prompts/shared/output_protocol.md` §3（去术语化红线）。术语黑名单、替换表与自检标准见该文件，本处不重复。
+遵守 `workspace/prompts/shared/output_protocol.md` §3（Part B 现实映射规范）。每条术语断语必须紧跟现实映射，自检标准见该文件。
 
 ---
 

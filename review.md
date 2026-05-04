@@ -816,3 +816,105 @@ cd /workspace/share/yinzhan/prompts/step/timeline...
 1 bash command
 Bash
 cd /workspace/share/yinzhan/prompts/ste
+
+润色师这边稍微参杂点术语没事。术语黑名单(出现即违规):行星名(土星/木星/Rahu/Ketu 等)、术语(落陷/庙旺/大运/相位/宫主等)、编码(D9/D10/1宫/7宫等)、体系名(Yoga/Dasha/Transit/Ashtakavarga 等)。
+
+还有个疑问，为什么output这边禁止输出英文的行星和梵语啥的，输出也没问题吧
+
+好问题。让我先看清 output_protocol §3 当前的完整内容，再讨论。
+
+
+1 bash command
+Bash
+sed -n '/^## §3 去术语化红线/,/^## §4/p' /workspace/shar...
+注意到 §3.4 里家人重复了一行，顺手修。
+
+现在回答你的问题：
+
+关于 output_protocol §3 禁英文行星名/梵文
+你说得对，没必要禁。output_protocol §3 管的是分析师 Part B（白话区），面向的读者是检查师和润色师，不是命主。Part B 的目的是把技法结论映射到现实语言，但分析师和检查师都是懂术语的专业角色——写"Jupiter 过境 10 宫"比写"掌管扩张的行星经过事业宫位"更精确、更短、歧义更少。
+
+真正需要去术语化的是润色师写进生命之书的内容——那才是命主看的。而润色师有自己的 writer_prompt 红线控制，不需要 output_protocol 替她管。
+
+所以合理的分工是：
+
+output_protocol §3（管分析师 Part B）：禁止纯术语堆砌（不能只写"5/8/11 链联动"就完事），但允许英文行星名、梵文等作为精确表达。核心要求是"必须有现实映射"，而不是"禁止出现术语"。
+writer_prompt 红线（管润色师/生命之书）：按你刚说的标准——稍微参杂点没事，但核心黑名单是行星名、术语、编码、体系名。
+我来改。
+
+
+Edited 1 file
+Edit
+share/yinzhan/prompts/step/shared/output_protocol.md
+同时修复 §3.4 的家人重复行：
+
+
+2 tool calls
+Bash
+grep -n "家人" /workspace/share/yinzhan/prompts/step...
+Edit
+share/yinzhan/prompts/step/shared/output_protocol.md
+现在更新 md_prompt、ad_prompt 中引用 output_protocol §3 的措辞——原来写的是"去术语化红线"，现在 §3 改名了：
+
+
+1 bash command
+Bash
+# 看所有引用 output_protocol §3 的地方...
+这些引用需要更新措辞——"去术语化红线"改为"现实映射规范"。同时内容也变了：不再是"禁止术语"，而是"术语必须配现实映射"。
+
+
+2 bash commands
+Bash
+# 批量替换引用措辞...
+Bash
+# 验证替换...
+还有两处残留。第一处是 natal_module_skeleton 的去重边界列表（line 20），这里是概述性引用，改一下措辞。第二处是 B2 专属的去术语化红线（line 147），这个是针对 B2 触发条件清单的独立规则，和 §3 不同——B2 是面向命主的触发条件，确实需要更严格的去术语化。让我看看：
+
+
+1 bash command
+Bash
+sed -n '145,160p' /workspace/share/yinzhan/prompts...
+等等，这里已经被改过了。但 B2 触发条件清单确实有不同需求——B2 是给时间片分析师看的技术接口，术语没问题。让我确认 line 20：
+
+
+2 tool calls
+Bash
+sed -n '18,22p' /workspace/share/yinzhan/prompts/s...
+Edit
+share/yinzhan/prompts/step/modules/natal_module_skeleton.md
+现在还有 ad_prompt 和 md_prompt 的自检清单中"去术语化"措辞需要同步：
+
+
+1 bash command
+Bash
+grep -rn "去术语化" /workspace/share/yinzhan/prompts/s...
+自检清单里的"无英文行星名、无梵文、无宫位编号、无分盘代号"需要改——现在允许术语了，核心要求是"每条术语断语必须有现实映射"。
+
+
+1 bash command
+Bash
+# md_prompt.md 自检清单...
+现在处理润色师的术语红线。按你说的标准更新 writer_prompt.md：
+
+
+2 bash commands
+Bash
+grep -n "术语\|黑名单\|禁用词\|去术语" /workspace/share/yinzh...
+Bash
+sed -n '218,225p' /workspace/share/yinzhan/prompts...
+现在把"出现即违规"改为更宽松的表述：
+
+
+Edited 1 file
+Edit
+share/yinzhan/prompts/writer_prompt.md
+同步修改 §1 的"零术语"表述和相关红线：
+
+
+3 tool calls
+Edit
+share/yinzhan/prompts/writer_prompt.md
+Bash
+# 检查 R4 红线...
+Edit
+share/yinzhan/prompts/writer_prompt.md

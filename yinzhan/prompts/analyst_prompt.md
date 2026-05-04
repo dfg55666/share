@@ -107,9 +107,7 @@
 
 ### 4.1 JHora MCP 工具
 
-- **共享工具指南**：涉及 `jhora_*` 工具、数据源优先级、Dasha/Transit/BAV/SAV/Tajaka/分盘来源、live/static 口径冲突或工具异常降级时，必须先读取并遵守 `workspace/prompts/shared/jhora_usage_guide.md`。
-- **工具证据优先**：需要精确分值、精确日期、完整 Yoga 枚举等数据时，先读取已有 `workspace/jhoratools/*.json` 与静态导出；既有数据不足时再调用对应工具，并在产物中注明来源。
-- **账本化输出**：时间片和重工具步骤必须在产物开头写明数据源与口径（Dasha rows、Transit 快照编号、BAV/SAV 映射、分盘来源、Tajaka 异常、live/static 冲突处理）。
+调用 `jhora_*` 工具或引用工具数据时，必须先读取并遵守 `workspace/prompts/shared/jhora_usage_guide.md`。该指南定义了数据源优先级、强制调用场景、账本模板、BAV/SAV 映射、Tajaka 异常处理与 live/static 冲突规则，本提示词不重复其内容。
 
 ### 4.2 Subagent 协作（`spawn_agent`）
 

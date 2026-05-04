@@ -40,6 +40,28 @@ runtime_messages:
     本次 run 的 `task.yaml` 已全部完成，请你做最后收尾：
     1. 再次核对最终产物是否齐全且可读。
     2. 在需要时补充总结说明，确保后续消费者可直接接手。
+# 每个 step 的完整生命周期：
+#   1. analyst  — 产出分析稿（Part A + Part B）
+#   2. checker 模式 A — 技术审查（逻辑链、证据标记、工具合规）
+#   3. writer  — 增量更新生命之书
+#   4. checker 模式 B — 保真审查（核对生命之书增量是否偏离分析师逻辑链）
+#
+# checker 模式判定规则：
+#   - 若当前触发来源为 analyst → 模式 A（读取 step.description.checker）
+#   - 若当前触发来源为 writer  → 模式 B（读取 step.description.checker_review）
+#   - 两种模式互斥，禁止在同一次调用中混用（见 checker_prompt §0）
+#
+# 纯规划步骤（6-0、7-0、7-x-0）无分析内容产出，跳过 writer 和 checker 模式 B。
+step_cycle:
+  - agent: analyst
+  - agent: checker
+    mode: A
+    description_field: checker
+  - agent: writer
+  - agent: checker
+    mode: B
+    description_field: checker_review
+
 agents:
   analyst:
     prompt: workflows/yinzhan/prompts/analyst_prompt.md
