@@ -1,0 +1,48 @@
+id: yinzhan
+version: 2
+entry_agent: analyst
+task_default_file: workflows/yinzhan/task.default.yaml
+step_prompt_seed_dir: workflows/yinzhan/prompts/step
+runtime_messages:
+  kickoff: |
+    你是印占工作流（`yinzhan`）的入口分析师 agent `{entry_agent}`。
+    你的职责是基于命盘与任务编排推进本轮分析，并通过 task 工具保持 task 状态为唯一流程真相源。
+    当前 thread 的工作目录已经是本 run 的 workspace 根目录，请立即开始执行。
+
+    启动顺序（严格执行）：
+    1. 先调用 `task_read(view="context", agent="analyst")`，锁定当前 round/step 与本轮目标。
+    2. 再读取出生输入：读取 `input/subject_birth.json`。
+    3. 基于上一步读取到的出生信息，立即调用 `jhora_session(action=\"create\", birth=...)` 创建本轮会话；后续 jhora 工具优先复用该 `session_id`。
+    4. 再读取命盘输入：`input/jhora_extended.json`。
+    5. 再读取与当前 step 相关的 `prompts/`、`steps/`、`reports/`，避免重复劳动。
+
+    规则：
+    1. 每次只推进一个 step，优先完成当前 step 的 analyst 产物。
+    2. 需要调整步骤、状态、description 或 current_step 时，统一调用 `task_update`。
+    3. `task_update.set_current` 必须写成 `round-step-agent`；全部完成时写成 `round-done`。
+    4. 当前执行 agent 必须是 workflow 已声明的 agent id。
+    5. 若发现后续步骤需裁剪或改序，可直接通过 `task_update` 调整，并在本步结论里说明原因。
+  idle_wake: |
+    [唤醒消息]检测到当前任务所有agent线程中断。
+    请先调用 `task_read(view="context", agent="analyst")`，再结合现有产物继续推进未完成步骤，或者使用teammailbox给对应agent发送消息。
+    如果步骤状态需要变化，请通过 `task_update` 更新。
+  on_done: |
+    本次 run 的 `task.yaml` 已全部完成，请你做最后收尾：
+    1. 再次核对最终产物是否齐全且可读。
+    2. 在需要时补充总结说明，确保后续消费者可直接接手。
+agents:
+  analyst:
+    prompt: workflows/yinzhan/prompts/analyst_prompt.md
+    tools: [task_read, task_update, read_json]
+    model: gpt-5.2
+    reasoning_effort: xhigh
+  checker:
+    prompt: workflows/yinzhan/prompts/checker_prompt.md
+    tools: [task_read, task_update, read_json]
+    model: gpt-5.2
+    reasoning_effort: xhigh
+  writer:
+    prompt: workflows/yinzhan/prompts/writer_prompt.md
+    tools: [task_read, task_update, read_json]
+    model: gpt-5.2
+    reasoning_effort: xhigh

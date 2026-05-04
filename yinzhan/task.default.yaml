@@ -1,0 +1,380 @@
+current_step: 'round1-1-1-analyst'
+rounds:
+  -
+    round: 'round1'
+    steps:
+      -
+        key: '1-1'
+        title: '数据校验 + Panchanga时空底色 + 上升与月亮深度分析'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：数据校验 + Panchanga时空底色 + 上升与月亮深度分析。
+            前置校验（Preamble）：
+            - 确认采用 Sidereal Zodiac (Lahiri Ayanamsa)。
+            - 列出 Lagna (上升点)、Moon Sign (月亮星座)、Sun Sign (太阳星座)。
+            - 查询 `panchanga`，列出 Tithi（月相太阴日）、Yoga 以及 Hora Lord，并明确指出这些时空底色对盘面基础能量的影响（例如避开恶月相、空亡日等）。
+            - 扫描 `special_points`，检查特殊计算点与煞星（如 Mandi、Gulika）是否严重污染了上升和月亮。
+            - 列出月亮所在的 Nakshatra (二十七星宿) 及其 Pada (脚)。
+            - 确认 D1 与 D9 上升点数据无误；声明缺失项（若有）。
+            - 本段仅做数据映射校验，不输出事件预测。
+            Lagna (肉身与面具)：分析命主星 (Lagna Lord) 的状态 (入庙/旺/陷/敌) 及落宫，评估体质与外在气质。
+            Moon (心智与感知)：
+            - 深度剖析月亮 Nakshatra 的神话隐喻与潜意识模式。
+            - 月相与光亮：分析这是满月 (Purnima) 还是新月 (Amavasya)，判断心性能量的强弱。
+            - 孤独/夹持：检查是否有 Kemadruma Yoga (孤月) 或吉星夹持。
+            D1与D9联动：对比月亮在D9中的位置 (Navamsa Moon)，看内心真实的情感需求。
+            完成后产出 workspace/steps/1-1/analyst.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否分析了 `panchanga`（如 Tithi/Yoga）的时空底色，并运用 `special_points` 检查了煞星(Mandi/Gulika)的污染？
+            - 是否在前置段落确认了体系(Sidereal/Lahiri)、列出 Lagna/Moon/Sun 及 Nakshatra/Pada？
+            - 是否确认了 D1 与 D9 上升点数据无误？
+            - 前置校验段是否避免了事件预测与吉凶断语？
+            - 是否分析了 Lagna Lord 的强弱（不仅星座，还包含相位/宫位）？
+            - 是否结合 Nakshatra 分析了月亮的心智模式？
+            - 是否避免无边界绝对化断语？
+            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/1-1/checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/1-1/writer.md。'
+      -
+        key: '2-1'
+        title: '行星状态、交战与灵魂意志'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：行星状态、交战与灵魂意志 (Sun & Planets)。
+            - Sun (灵魂与意志)：分析太阳落位，揭示父系业力及灵魂终极追求。
+            - 行星多维评估 (量化升级)：
+              - 禁止仅凭 Exaltation (耀升) / Debilitation (落陷) 下定论，必须结合 `vimsopaka` 与 `shadbala` 确认星体真实力量。
+              - 强制检查 `avasthas`，明确星体是清醒活跃还是老死沉睡。
+              - 强制检查 `combustion.orb` (燃烧容许度) 及 `war` (星体交战)。必须明确交战的胜负，果断降级败者的力量与影响。
+            - Jaimini 指标：不仅要确定 Atmakaraka (灵魂指示星/AK)，还必须标出 Amatyakaraka (AmK/事业星) 和 Darakaraka (DK/伴侣星)，为后续领域分析定位。
+            完成后产出 workspace/steps/2-1/analyst.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否涵盖了全部九大星体（Nine Grahas，包含 Rahu/Ketu）？
+            - 是否通过 Shadbala / Vimsopaka / Avasthas 验证了星体的真实力量（而非只看庙旺落陷表面）？
+            - 是否检查了星体交战（war.winner/loser），并剔除了交战败者的利好论断？
+            - 是否找出了 8 个 Chara Karakas 中的关键星（AK/AmK/DK）而不仅是 AK？
+            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/2-1/checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/2-1/writer.md。'
+      -
+        key: '2-2'
+        title: '罗睺-计都业力轴线'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：罗睺-计都业力轴线 (Rahu-Ketu Axis)。
+            业力透视：
+            - Rahu (北交点)：揭示缘主今生极度渴望、执着甚至产生幻觉的领域 (陌生的水域)。
+            - Ketu (南交点)：揭示缘主前世修习圆满、今生厌离或具有先天灵性的领域 (熟悉的港湾)。
+            轴线张力：分析这对矛盾（如 1/7 轴自我与伴侣，4/10 轴家庭与事业）如何撕扯缘主的人生，并指出平衡之道。
+            完成后产出 workspace/steps/2-2/analyst.md。
+          checker: |-
+            审核 analyst 的本步输出。`checker_prompt.md` 当前没有为"罗睺-计都业力轴线"单独列出阶段清单，因此本步至少完整执行以下通用检查：
+            - 步骤目标核实：检查师必须首先确认分析师输出的模块层级是否与当前 step 匹配。
+            - 单步检查：分析师必须每次只输出一个步骤。如果分析师一次输出了多个步骤或跨阶段，直接判定不通过。
+            - 幻觉零容忍：检查所有关键结论是否都有盘面证据支持。
+            - 证据回链强约束：现实映射中的每条核心断语，必须能回链到技法证据锚点（`[evidence: E#]`）。无回链则判定不通过。
+            - 双层表达强约束：技法推演层允许术语；现实映射层应直白、可观察、少术语；若现实映射仍充斥术语且缺乏现实事件描述，判定不通过。
+            - Agent 工具监督：验证 Analyst 是否在缺乏深度数据时合理调用了 Jhora MCP 工具。若在需要行运 Kakshya 给分或细化 BAV 时仅靠盲猜而未主动调用工具，或引用的工具数据与结论严重背离，判定不通过。
+            - 量化与状态一票否决：对于没有 Ashtakavarga / Vimsopaka 高分支持、且处于交战失败 (`war.loser`) 或严重焦伤状态的星体，一旦分析师下达了任何极其乐观的大吉断语，必须直接判定不通过。
+            - Analyst 输出协议对齐检查：Part A 应包含 `A0 总断命题`、`A1 证据链(E#)`、`A2 反证链(CE#)`、`A3 裁决层`；Part B 应包含 `B0 角色雷达表（动态）` 与 `B1 详细现实断语`。
+            - 现实映射专项检查：是否出现至少 3 条可观察现实断语（事件级，不是抽象能量词）；每条核心断语是否可通过 `[evidence: <层级标记>#]` 回链到 Part A；是否避免给出危险/违法/高风险医疗金融指令。
+            - 最终判定指令：无论本步判定为通过/重写/转人工，你都必须直接给出最终判定。
+            将审核结论写入 workspace/steps/2-2/checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/2-2/writer.md。'
+      -
+        key: '2-3'
+        title: '核心格局、宫位互动与显化'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：核心格局、宫位互动与显化 (Yogas & Manifestation)。
+            - 复合敌友检验：在分析星体落宫、同宫互动或相位（Drishti）时，强制查询 `relationships.compound`（复合敌友关系），判断其表面吉凶背后是否隐藏天然敌对。
+            - 识别天命格局：
+              - Raja Yoga (帝王/权势)、Dhana Yoga (财富)、Sanyasa Yoga (苦行/出世)。
+              - Pancha Mahapurusha Yoga (五大人格瑜伽)。
+            - 显化分析：不仅列出名字，更要解释该格局在现实生活中的具体显化形式（是富而不贵？是有名无实？还是先苦后甜？）。参考 D9 确认格局的"果实"是否饱满。
+            完成后产出 workspace/steps/2-3/analyst.md。
+          checker: |-
+            审核 analyst 的本步输出，先检查宫位与相位，再检查核心 Yoga：
+            - 是否运用了 Arudha Lagna (AL) 视角？
+            - 相位分析是否包含 Jaimini 符号相位（若适用）？
+            - 凶宫（6/8/12）是否做了辩证分析（非纯粹负面）？
+            - 提出的 Yoga 是否有明确构成条件说明？
+            - 是否评估了 Yoga 的强弱（而非见 Yoga 就断吉）？
+            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/2-3/checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/2-3/writer.md。'
+      -
+        key: '3-1'
+        title: 'Navamsa (D9) 深度解码'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：Navamsa (D9) 深度解码。
+            - 果实之盘：D9 是 D1 的果实。分析 D9 Lagna 及命主星。
+            - 后半生指引：D9 揭示了中晚年的归宿与真实的内在力量。
+            - 婚恋本质：必须分析 D9 中的婚恋情况。D1 虽好 D9 差，则金玉其外败絮其中。
+            - 灵魂渴望：分析 Karakamsha Lagna (AK在D9的落宫) 的精神追求。
+            完成后产出 workspace/steps/3-1/analyst.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否对比了行星在 D1 与 D9 的状态变化（Vargottama 等）？
+            - 是否分析了 Karakamsha 及其灵魂层影响？
+            - 是否涉及婚姻/伴侣的深层业力？
+            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/3-1/checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/3-1/writer.md。'
+      -
+        key: '3-2'
+        title: '分盘与特殊业力 (Vargas & Doshas)'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：分盘与特殊业力 (Vargas & Doshas)。
+            - 领域聚焦：根据用户需求，简述 D10 (事业/天职) 或 D2 (财富积累)。
+            - 业力缺陷 (Dosha)：检查 Kaal Sarpa (蛇煞), Mangal Dosha (火星刑克), Pitra Dosha (祖先业力) 等，并解释其对人生的具体考验。
+            完成后产出 workspace/steps/3-2/analyst.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否针对特定领域使用了正确分盘（如事业看 D10）？
+            - Dosha 分析是否给出成立/缓解条件说明？
+            - 是否引用 Shadbala 或 Ashtakavarga 作为量化支持？
+            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/3-2/checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/3-2/writer.md。'
+      -
+        key: '3-3'
+        title: 'Jaimini 灵魂架构与 Ashtakavarga 宫气分值'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：Jaimini 灵魂架构与 Ashtakavarga 宫气分值。
+            - Jaimini 进阶联动：综合上述分析，总结 AK (灵魂)、AmK (事业)、DK (伴侣) 等核心 Karakas 在 D1 和 D9 中的深层联动指引。
+            - Ashtakavarga 扫描：强制查阅 D-1 盘的 SAV (八字分值) 总分，明确点出得分极高（天然顺遂）与得分极低（天然黑洞）的宫位，定下该人生的"天花板"与"薄弱区"。
+            完成后产出 workspace/steps/3-3/analyst.md。
+          checker: |-
+            审核 analyst 的本步输出。`checker_prompt.md` 当前没有为"Jaimini 灵魂架构与 Ashtakavarga 宫气分值"单独列出阶段清单，因此本步至少完整执行以下通用检查：
+            - 步骤目标核实：检查师必须首先确认分析师输出的模块层级是否与当前 step 匹配。
+            - 单步检查：分析师必须每次只输出一个步骤。如果分析师一次输出了多个步骤或跨阶段，直接判定不通过。
+            - 幻觉零容忍：检查所有关键结论是否都有盘面证据支持。
+            - 证据回链强约束：现实映射中的每条核心断语，必须能回链到技法证据锚点（`[evidence: E#]`）。无回链则判定不通过。
+            - 双层表达强约束：技法推演层允许术语；现实映射层应直白、可观察、少术语；若现实映射仍充斥术语且缺乏现实事件描述，判定不通过。
+            - Agent 工具监督：验证 Analyst 是否在缺乏深度数据时合理调用了 Jhora MCP 工具。若在需要行运 Kakshya 给分或细化 BAV 时仅靠盲猜而未主动调用工具，或引用的工具数据与结论严重背离，判定不通过。
+            - 量化与状态一票否决：对于没有 Ashtakavarga / Vimsopaka 高分支持、且处于交战失败 (`war.loser`) 或严重焦伤状态的星体，一旦分析师下达了任何极其乐观的大吉断语，必须直接判定不通过。
+            - Analyst 输出协议对齐检查：Part A 应包含 `A0 总断命题`、`A1 证据链(E#)`、`A2 反证链(CE#)`、`A3 裁决层`；Part B 应包含 `B0 角色雷达表（动态）` 与 `B1 详细现实断语`。
+            - 现实映射专项检查：是否出现至少 3 条可观察现实断语（事件级，不是抽象能量词）；每条核心断语是否可通过 `[evidence: <层级标记>#]` 回链到 Part A；是否避免给出危险/违法/高风险医疗金融指令。
+            - 最终判定指令：无论本步判定为通过/重写/转人工，你都必须直接给出最终判定。
+            将审核结论写入 workspace/steps/3-3/checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/3-3/writer.md。'
+      -
+        key: '4-1'
+        title: '本命综合结论'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：本命综合结论。基于已完成的全部基线步骤，在一份报告里完成以下四部分，产出 workspace/steps/natal/summary.md：
+            1. **四大目标结论 (Purusharthas)**：Dharma（10宫/土星）、Artha（2/11宫）、Kama（7宫/金星/火星）、Moksha（4/8/12宫/Ketu），直接回答用户核心关切，结论必须由前序分析推导而来。
+            2. **补救与建议 (Upayas)**：用一句话总结命主人生剧本（灵魂蓝图）；给出 Mantra/Ratna/Lifestyle 三类补救（仅增强有利行星），必须包含"自由意志"与"非医疗建议"免责声明。
+            3. **风险清单**：只写缺点、盲点、反模式与高风险点，用"触发条件 → 典型表现 → 具体代价"格式，覆盖至少 6 个领域，标注哪些风险与后续时间片触发有关。
+            4. **前事验证问题清单**：把待验证点改写成用户可回答的问题，优先整理时间窗口验证题，再补结构性验证题，并给出下一轮最值得追问的方向。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 四大目标结论是否直接回答用户关切且逻辑来自前序分析？
+            - 补救建议是否安全可行，是否包含免责声明？
+            - 风险清单是否用触发条件表达，是否覆盖 6 个以上领域？
+            - 验证问题是否可回答，是否区分时间窗口题与结构性题？
+            给出结构化判定，并将结论写入 workspace/steps/natal/summary.checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理本命综合结论的可读稿，产出 workspace/steps/natal/summary.writer.md。'
+      -
+        key: '6-0'
+        title: '本命模块路由与裁剪'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：本命模块路由与裁剪。
+            1. 调用 `task_read(view="context", agent="analyst")` 查看当前任务上下文，并通读已完成基线步骤（1-1 至 4-1）与已有收敛输出，确认本命模块阶段的真实需求。
+            2. 本轮可选本命模块如下：
+               - `career`：事业与成就（提示词：workspace/prompts/modules/career.md）
+               - `wealth`：财富与资产（提示词：workspace/prompts/modules/wealth.md）
+               - `love`：情感婚姻（提示词：workspace/prompts/modules/love.md）
+               - `health`：健康精力（提示词：workspace/prompts/modules/health.md）
+               - `children`：子女主题（提示词：workspace/prompts/modules/children.md）
+               - `spirituality`：灵性成长（提示词：workspace/prompts/modules/spirituality.md）
+               - `family`：家庭根基（提示词：workspace/prompts/modules/family.md）
+               - `education`：学业成长（提示词：workspace/prompts/modules/education.md）
+               - `risks`：风险预警（提示词：workspace/prompts/modules/risks.md）
+            3. 基于用户关切、盘面波幅与前序收敛输出，自主决定本轮保留哪些模块、裁剪哪些模块，以及各保留模块的执行顺序。
+            4. **通过 `task_update` 更新任务流**：删除占位 `6-1`，在 `6-0` 之后插入第一个保留模块；若有更多模块，在其后继续插入 `6-2`、`6-3` ... 的同类模块步骤；未保留模块不写入任务流。
+            5. 将保留模块、裁剪模块、顺序、理由，以及每个保留模块对应的提示词路径与产物路径写入对应步骤的 description 中。
+            6. 本步只负责路由、排序与本命模块子任务树规划，禁止展开任何具体模块分析内容。
+            本步无需产出额外文件，`task_update` 对任务流的更新即为本步产物。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否明确列出可选模块中的保留结果、裁剪结果及其理由？
+            - 是否真的通过 `task_update` 将占位 `6-1` 替换为首个模块并按需插入更多 6-x？
+            - 更新后的任务步骤 description 中是否写明各保留模块的顺序、提示词路径与产物路径？
+            - 是否把具体模块分析内容错误地提前展开到 6-0？
+      -
+        key: '6-1'
+        title: '{本命模块名} 分析（占位，由 6-0 动态替换）'
+        status: 'pending'
+        description:
+          analyst: |-
+            本步为本命模块占位步骤，由 6-0 根据路由结果替换为具体模块分析任务（如“事业与成就模块”或“财富与资产模块”）。
+            **执行时**：
+            1. 调用 `task_read(view="context", agent="analyst")` 确认当前模块的名称、提示词路径、产物路径与优先级。
+            2. 读取对应模块提示词（`workspace/prompts/modules/{module-prompt}.md`）与已完成基线/综合步骤，确认当前模块的展开边界。
+            3. 在当前模块边界内完成本命领域分析；若发现跨模块结论，仅做 Cross-Link，不在本步展开其他模块。
+            4. 本步只处理当前模块，禁止回退成总控或提前展开其他本命模块。
+            产出 workspace/steps/natal/modules/{module-key}.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否只处理了当前模块，未跨到其他本命模块或回退成总控？
+            - 是否通过 `task_read` 读取并遵守了当前模块定义、模块边界与对应提示词路径？
+            - 关键结论是否能回扣到已完成基线/综合步骤与当前模块专项提示词？
+            将审核结论写入 workspace/steps/natal/modules/{module-key}.checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理当前模块的可读稿，产出 workspace/steps/natal/modules/{module-key}.writer.md。
+      -
+        key: '7-0'
+        title: '时间片总控与 Dasha 选择'
+        status: 'pending'
+        description:
+          analyst: |-
+            执行本步：时间片总控与 Dasha 选择。
+            1. 调用 `jhora_dasha` 获取命主的 Dasha 序列，不得凭经验推算日期。
+            2. **自主选择时间片**：基于 Dasha 数据与盘面判断，自主决定本次分析覆盖的 MD 范围与各 MD 内的 AD 范围，无需遵循固定规则，以"对命主最有分析价值"为唯一准则。
+            3. **PD 规划**：PD 不是每个 AD 都钻取，此处仅标记"哪些 AD 可能触发 PD"，实际在 AD 步骤分析后由子任务路由步骤决定是否插入 PD 步骤。
+            4. **通过 `task_update` 更新任务流**：为每段选定的 MD 插入一棵完整子任务树，结构如下：
+               - `7-x`      MD 总控+领域分析（如 `7-1` 木星大运总控）
+               - `7-x-0`    AD 路由步骤（分析完 MD 后，决定各 AD 的分析顺序与是否触发 PD）
+               - `7-x-1`    第一个 AD 分析步骤
+               - `7-x-1-0`  （条件）第一个 AD 的 PD 钻取步骤，仅在 `7-x-0` 路由时标记触发才插入
+               - `7-x-2`    第二个 AD 分析步骤（及其可能的 PD 步骤，依此类推）
+               - `7-x-z`    MD 聚合报告步骤（读取本 MD 所有子步骤产物，汇总为 report.md）
+            5. 本步只负责 Dasha 读取、时间片选择与 task 子任务树规划，禁止展开任何领域分析内容。
+            6. **分步调用 `task_update`**：每次只插入当前 MD 的子任务树，确认写入后再插入下一段 MD 的子任务树，不得一次性批量写入所有 MD 步骤。
+            本步无需产出额外文件，`task_update` 对任务流的更新即为本步产物。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否调用了 `jhora_dasha` 获取真实数据，而非凭空推算？
+            - 是否给出了时间片选择的理由（为何选这几段 MD/AD）？
+            - 是否为每段 MD 插入了完整子任务树（包含 MD总控、AD路由、AD分析、聚合报告各层）？
+            - 是否真的通过 `task_update` 更新了任务流，而不只是在正文里描述计划？
+      -
+        key: '7-1'
+        title: '{MD主星} 大运总控+领域分析（占位，由 7-0 动态替换）'
+        status: 'pending'
+        description:
+          analyst: |-
+            本步为 MD 总控占位步骤，由 7-0 替换为具体 MD 的分析任务（如"木星大运总控+领域分析"）。
+            **执行时**：
+            1. 读取 workspace/prompts/timeline/md_prompt.md（MD 总控+领域骨架提示词）。
+            2. 对每个有波幅的领域，同时读取 workspace/prompts/timeline/modules/{domain}.md 中的 [MD专项] 章节作为领域专项指引。
+            3. 结合本命模块产物（steps/natal/modules/）与已完成基线，完成该段 MD 的总控判断与领域分析。
+            4. 领域分析只展开本运有波幅的领域（跳过的领域须给出理由），不展开 AD/PD 子层。
+            5. 分析完成后，**必须明确输出"AD 层触发建议"**：列出本 MD 内各 AD 的信号强度，标注哪些 AD 需要 PD 钻取，供下一步 `7-x-0` AD 路由参考。
+            产出 workspace/steps/timeline/{md-key}/md.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否只分析了 MD 层（总控+领域），未提前展开 AD/PD 内容？
+            - 领域分析是否只覆盖了有信号的领域，跳过的是否有理由？
+            - 是否输出了"AD 层触发建议"（各 AD 信号强度 + PD 触发标记）？
+            将审核结论写入 workspace/steps/timeline/{md-key}/md.checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理 MD 总控与领域分析可读稿，产出 workspace/steps/timeline/{md-key}/md.writer.md。'
+      -
+        key: '7-1-0'
+        title: '{MD主星} 大运 AD 路由（占位，由 7-0 动态替换）'
+        status: 'pending'
+        description:
+          analyst: |-
+            本步为 AD 路由占位步骤，由 7-0 替换为具体 MD 下的 AD 路由任务。
+            **执行时**：
+            1. 读取上一步 MD 总控产物（steps/timeline/{md-key}/md.md）中的"AD 层触发建议"。
+            2. 结合 7-0 选定的 AD 列表，确认本 MD 内需要分析的所有 AD 及其顺序。
+            3. **决定 PD 触发**：对每个 AD 明确标注是否需要 PD 钻取（需给出触发理由，如"AD 内识别出婚恋/事业关键窗口"）。
+            4. **通过 `task_update` 更新任务流**：若有需要新增 PD 步骤，在对应 AD 步骤之后插入 `7-x-y-0` 格式的 PD 钻取步骤。
+            5. 本步只做路由决策，禁止展开任何 AD/PD 分析内容。
+            本步无需产出额外文件，`task_update` 对任务流的更新即为本步产物。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否只做了路由决策，没有提前展开 AD/PD 内容？
+            - 对每个 AD 是否给出了明确的 PD 触发/跳过判断及理由？
+            - 若有 PD 步骤，是否真的通过 `task_update` 更新了任务流？
+      -
+        key: '7-1-1'
+        title: '{MD主星}/{AD主星} 子运分析（占位，由 7-0/7-1-0 动态替换）'
+        status: 'pending'
+        description:
+          analyst: |-
+            本步为 AD 分析占位步骤，由 7-0 或 7-x-0 路由时替换为具体 AD 的分析任务。
+            **执行时**：
+            1. 读取 workspace/prompts/timeline/ad_prompt.md（AD 总控+领域骨架提示词）。
+            2. 对每个有信号的领域，同时读取 workspace/prompts/timeline/modules/{domain}.md 中的 [AD专项] 章节作为领域专项指引。
+            3. 结合 MD 总控产物（steps/timeline/{md-key}/md.md）与本命模块产物，完成该 AD 的分析。
+            4. 只分析本 AD 内有信号的领域，其余领域简述或跳过（须给出理由）。
+            5. 多维时间验证统一按 `workspace/prompts/timeline/ad_prompt.md`、`workspace/prompts/shared/jhora_usage_guide.md` 与 `workspace/prompts/shared/jyotish_theory_protocol.md` 执行；本 task 模板不重复定义 Transit、BAV/SAV、Tajaka 或 Yoga 显化算法。
+            6. 禁止在本步展开 PD 层内容（PD 有独立步骤 `7-x-y-0`）。
+            产出 workspace/steps/timeline/{md-key}/ad_{ad-key}.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否只分析了该 AD 层，未展开 PD 内容？
+            - 领域分析是否只覆盖本 AD 有信号的领域？
+            - 结论是否与 MD 总控方向一致（或明确说明了为何偏离）？
+            - 多维时间验证是否符合 `ad_prompt.md` 与 shared JHora/理论协议，且没有在本步自造 Transit、BAV/SAV、Tajaka 或 Yoga 显化口径？
+            - high/critical 时间断语是否具备 shared 协议要求的数据来源、Transit 锚点、BAV 有效性与必要降级说明？
+            - 若本 AD 跨自然年，Tajaka 是否按 shared JHora 指南处理，且异常输出没有被当作强证？
+            将审核结论写入 workspace/steps/timeline/{md-key}/ad_{ad-key}.checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理该 AD 分析可读稿，产出 workspace/steps/timeline/{md-key}/ad_{ad-key}.writer.md。'
+      -
+        key: '7-1-1-0'
+        title: '{MD主星}/{AD主星} PD 钻取（条件触发，占位）'
+        status: 'pending'
+        description:
+          analyst: |-
+            本步为 PD 钻取条件占位步骤，仅在 AD 路由步骤（7-x-0）标记触发时才保留并执行。
+            **执行时**：
+            1. 读取 workspace/prompts/timeline/ad_prompt.md 中的 [PD钻取协议] 章节（触发条件、映射表规则、Part B 叙事格式）。
+            2. 读取上一步 AD 分析产物（steps/timeline/{md-key}/ad_{ad-key}.md）中识别出的重大事件窗口。
+            3. 调用 `jhora_dasha` 获取该 AD 内的 PD 序列，精确到 PD 起止日期。
+            4. 钻取 PD 层时间节点，重点关注事件窗口内的关键 PD 触发点，给出可观察时间断语。
+            产出 workspace/steps/timeline/{md-key}/pd_{ad-key}.md。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - PD 时间边界是否来自 `jhora_dasha` 真实数据，而非推算？
+            - 是否聚焦在上游 AD 步骤识别出的事件窗口内，而非全面铺开 PD？
+            - 时间断语是否可观察、可验证？
+            将审核结论写入 workspace/steps/timeline/{md-key}/pd_{ad-key}.checker.md。
+          writer: '基于已通过的 analyst 输出与 checker 结论，整理 PD 钻取可读稿，产出 workspace/steps/timeline/{md-key}/pd_{ad-key}.writer.md。'
+      -
+        key: '7-1-z'
+        title: '{MD主星} 大运聚合报告（占位，由 7-0 动态替换）'
+        status: 'pending'
+        description:
+          analyst: |-
+            本步为 MD 聚合报告占位步骤，由 7-0 替换为具体 MD 的聚合任务（如"木星大运聚合报告"）。
+            **执行时**：
+            1. 读取本 MD 所有已完成子步骤产物：
+               - MD 总控：steps/timeline/{md-key}/md.md
+               - 各 AD 分析：steps/timeline/{md-key}/ad_{ad-key}.md
+               - 各 PD 钻取（如有）：steps/timeline/{md-key}/pd_{ad-key}.md
+            2. 将以上内容整合为完整的 MD 聚合报告，格式如下：
+               ```
+               # {MD主星} 大运报告（{起止日期}）
+               ## 大运总控与领域判断
+               ## 子运详情
+               ### AD：{AD主星}（{起止日期}）
+               #### PD 钻取（若有）
+               ### AD：...
+               ```
+            3. 若时间片证据推翻或细化了前序本命报告，允许回写 steps/natal/ 下相关文件，并在报告中说明改动。
+            产出 workspace/steps/timeline/{md-key}/report.md（最终用户交付产物）。
+          checker: |-
+            审核 analyst 的本步输出，检查项：
+            - 是否完整整合了本 MD 下所有已完成的 AD/PD 子步骤产物，无遗漏？
+            - 报告结构是否清晰（MD→AD→PD 层次分明）？
+            - 若有回写前序报告，是否有清晰的时间证据与改动说明？
+            将审核结论写入 workspace/steps/timeline/{md-key}/report.checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理该段 MD 完整聚合报告的可读稿，产出 workspace/steps/timeline/{md-key}/report.writer.md。
+            若时间片阶段已回写了前序报告，writer 必须按最新口径同步整理。
