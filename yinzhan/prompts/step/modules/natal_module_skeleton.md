@@ -17,10 +17,7 @@
 
 具体模块文件不重复定义以下内容：
 - 通用输出协议（A-Pre / A0 / A1 / A2 / A3 / B0 / B1 / B2）
-- 通用引用格式（如 `[Ref: step.E#]`）
-- 通用证据编号规则（ME# / MCE# 的基本格式）
-- 通用 B2 去术语化红线
-- 通用现实映射层写作要求
+- 证据标记体系、引用格式、回链规则、去术语化红线、note.md 写入规范（统一遵守 `workspace/prompts/shared/output_protocol.md`）
 - JHora 工具、BAV/SAV、Dasha/Transit/Tajaka、live/static 冲突等通用工具规则（统一遵守 `workspace/prompts/shared/jhora_usage_guide.md`）
 - Parashari/Jaimini、Argala、Avasthas、Yoga 显化、Vargas 用途边界等通用理论规则（统一遵守 `workspace/prompts/shared/jyotish_theory_protocol.md`）
 
@@ -73,12 +70,7 @@ A-Pre 基线桥接
 ```
 
 **引用格式硬规则**（违反即不合格）：
-- 唯一正确写法：`[Ref: 2-1.E6]` — **方括号开头**，Ref后带冒号，步骤号.证据号，**方括号结尾**。
-- 禁止：`Ref(2-1.E6)` — 圆括号。
-- 禁止：`Ref(E3)` — 圆括号且缺步骤号。
-- 禁止：`[Ref E3]` — 缺冒号且缺步骤号。
-- 禁止：`[Ref 2-1.E6]` — 缺冒号。
-- 此规则同样适用于 B1 中的 `[Ref: step.E#]` 回链。
+遵守 `workspace/prompts/shared/output_protocol.md` §2.2 的引用格式硬规则。此规则同样适用于 B1 中的 `[Ref: step.E#]` 回链。
 - 筛选逻辑：保留涉及本领域核心宫位、核心行星、核心轴线的 E#。
 - 不复制基线原文，只做领域化转译。
 - 输出顺序：**A-Pre → A0 → A1 → A2 → A3**。
@@ -153,15 +145,7 @@ A3 的**白话翻译版**，让用户理解"什么运势周期下会触发什么
 - **修正项**：此盘的特殊情况如何影响结果（可结合现实信号辅助说明）
 
 **B2 去术语化红线**（违反即不合格）：
-- **禁止出现**：任何英文行星名（Mercury、Jupiter、Venus、Mars、Saturn、Rahu、Ketu、Sun、Moon）、梵文术语（Maraka、Badhaka、AmK、Dasha）、宫位编号（8/12、1/10 轴、5/8/11、2宫、6宫等数字+宫）、分盘代号（D2、D4、D10、D24）。
-- **必须替换为功能性白话**：
-  - 禁止 `Mercury/Jupiter掌限` -> 改为 "掌管知识与扩张的行星主导运势"
-  - 禁止 `Rahu放大` -> 改为 "冒险星放大"或"放大因子介入"
-  - 禁止 `5/8/11链联动` -> 改为 "投机运与他人之财的通道联动"
-  - 禁止 `6主Venus` -> 改为 "掌管债务宫的行星"
-  - 禁止 `2/8轴` -> 改为 "财富轴线"
-  - 禁止 `D4资产轴` -> 改为 "不动产相关的星象配置"
-- **自检标准**：把 B2 单独拿给不懂占星的朋友看，如果需要解释任何一个词，就说明还不够白话。
+遵守 `workspace/prompts/shared/output_protocol.md` §3（去术语化红线）。术语黑名单、替换表与自检标准见该文件，本处不重复。
 
 ---
 

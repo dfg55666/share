@@ -709,3 +709,104 @@ Wait, I see 证据编号完整性 still has 1 occurrence. Let me check where —
 1 bash command
 Bash
 grep -n "证据编号完整性" /workspace/shar
+
+
+深入研究下，完成P1
+
+让我先仔细研究需要提取的重复内容，找出所有跨文件重复的具体段落。
+
+
+Read 4 files
+Read
+share/yinzhan/prompts/analyst_prompt.md
+Read
+share/yinzhan/prompts/step/modules/natal_module_skeleton.md
+Read
+share/yinzhan/prompts/step/timeline/md_prompt.md
+Read
+share/yinzhan/prompts/step/timeline/ad_prompt.md
+现在我已经完整阅读了所有四个需要分析的源文件。让我系统梳理具体的重复段落。
+
+
+1 bash command
+Bash
+# 精确定位四类重复内容在各文件中的位置...
+现在我对重复内容的分布有了精确的了解。让我还检查 checker_prompt.md 中的证据标记体系表：
+
+
+1 bash command
+Bash
+grep -n "E#.*natal\|ME#.*natal\|TE#.*MD\|DE#.*MD\|...
+数据收集完毕。现在我有全面的画面了。让我创建 output_protocol.md 并修改各文件。
+
+
+Wrote 1 file
+Write
+share/yinzhan/prompts/step/shared/output_protocol.md
++160
+好，output_protocol.md 创建完毕。现在逐个文件替换重复段落为引用指令。先改 analyst_prompt.md：
+
+
+3 tool calls
+Read
+share/yinzhan/prompts/analyst_prompt.md
+Edit
+share/yinzhan/prompts/analyst_prompt.md
+Bash
+sed -n '139,157p' /workspace/share/yinzhan/prompts...
+文件编码有混合字符。让我用 Python 来做替换：
+
+
+1 bash command
+Bash
+cd /workspace/share/yinzhan/prompts...
+现在更新 §9 索引表，增加 output_protocol.md：
+
+
+1 bash command
+Bash
+cd /workspace/share/yinzhan/prompts...
+现在更新 checker_prompt.md §7 索引表：
+
+
+1 bash command
+Bash
+cd /workspace/share/yinzhan/prompts...
+现在处理 natal_module_skeleton.md — 替换重复的去术语化红线和引用格式规则：
+
+
+1 bash command
+Bash
+cd /workspace/share/yinzhan/prompts/step/modules...
+现在处理 md_prompt.md — 替换证据标记体系表、去术语化红线重复、note.md 写入规范：
+
+
+3 bash commands
+Bash
+cd /workspace/share/yinzhan/prompts/step/timeline...
+Bash
+grep -n "B1 去术语化红线" /workspace/share/yinzhan/promp...
+Bash
+sed -n '274,286p' /workspace/share/yinzhan/prompts...
+"不混写"是额外的，让我调整匹配文本：
+
+
+2 bash commands
+Bash
+cd /workspace/share/yinzhan/prompts/step/timeline...
+Bash
+grep -n "完整标记体系\|规则 4" /workspace/share/yinzhan/pr...
+Rule4 wasn't replaced yet. Let me re-read that section precisely:
+
+
+2 bash commands
+Bash
+sed -n '90,108p' /workspace/share/yinzhan/prompts/...
+Bash
+cd /workspace/share/yinzhan/prompts/step/timeline...
+现在处理 ad_prompt.md — 最大的文件，有最多重复：
+
+
+1 bash command
+Bash
+cd /workspace/share/yinzhan/prompts/ste

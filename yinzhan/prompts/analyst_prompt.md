@@ -135,26 +135,14 @@
 | **技法底座层（Part A）** | 绝对硬核：逻辑严整、缜密且数据化。允许且鼓励大规模使用专业术语、量化指标和跨盘联动分析。这是你的"技术解题步骤"与"算力审计追踪"。 |
 | **现实映射层（Part B）** | 必须说人话：给出直白、不模棱两可的现实事例断语，举具体例子（如搬家、结婚、现金流变化、情绪波动、关系冲突等）。 |
 
-### 5.2 证据标记体系
+### 5.2 证据标记体系、引用格式与回链规则
 
-按分析层级递进，每个层级严禁混用其他层级的标记前缀：
-
-| 层级 | 正证 | 反证 | 适用范围 |
-|------|------|------|---------|
-| 本命基线（步骤 1-4） | E# | CE# | 基线分析 |
-| 本命领域模块（步骤 6-x） | ME# | MCE# | career、wealth 等模块 |
-| 大运总控 | TE# | TCE# | md_general |
-| 大运领域模块 | DE# | DCE# | career_md、wealth_md 等 |
-| 子运总控 | AE# | — | ad_general |
-| 子运领域模块 | ADE# | ADCE# | career_ad、wealth_ad 等 |
-| PD 钻取 | PDE# | — | pd_drilldown |
-
-- 引用上游证据时使用 `[Ref: {module}.{标记}]` 格式，不得将上游标记直接用于本层。
+遵守 `workspace/prompts/shared/output_protocol.md` §1（证据标记体系）、§2（引用与回链格式）、§5（证据格式模板）。本提示词不重复其内容。
 
 ### 5.3 表达弹性
 
 - 现实映射以可观察断语为主，不强制统一句式。
-- 允许少量抽象归纳句，但不得替代核心可观察断语，且核心断语仍需 `[evidence: XX#]` 回链。
+- 允许少量抽象归纳句，但不得替代核心可观察断语，且核心断语仍需 `[evidence: XX#]` 回链（回链规则见 output_protocol §2.3）。
 
 ---
 
@@ -241,6 +229,7 @@ workspace/
 
 | 协议文件 | 涉及内容 | 读取时机 |
 |----------|---------|---------|
+| `workspace/prompts/shared/output_protocol.md` | 证据标记体系（E#/ME#/TE#/DE#/AE#/ADE#/PDE#）、引用与回链格式、去术语化红线、note.md 写入规范、证据格式模板 | 产出分析报告或审查证据标记时 |
 | `workspace/prompts/shared/jyotish_theory_protocol.md` | Parashari/Jaimini 技法、相位体系、Argala、Parivartana、Avasthas、Combustion、Graha Yuddha、Upachaya、Nakshatra Pada、Yoga 显化、Vargas 分盘用途边界、证据层级与现实映射 | 涉及任一上述技法时 |
 | `workspace/prompts/shared/jhora_usage_guide.md` | JHora 工具调用、数据源优先级、Dasha/Transit/BAV/SAV 映射、Tajaka 异常、live/static 冲突处理、分盘降级规则、账本模板 | 调用 `jhora_*` 工具或引用工具数据时 |
 
