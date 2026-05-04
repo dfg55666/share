@@ -26,16 +26,26 @@ rounds:
             D1与D9联动：对比月亮在D9中的位置 (Navamsa Moon)，看内心真实的情感需求。
             完成后产出 workspace/steps/1-1/analyst.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
-            - 是否分析了 `panchanga`（如 Tithi/Yoga）的时空底色，并运用 `special_points` 检查了煞星(Mandi/Gulika)的污染？
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否在前置段落确认了体系(Sidereal/Lahiri)、列出 Lagna/Moon/Sun 及 Nakshatra/Pada？
             - 是否确认了 D1 与 D9 上升点数据无误？
             - 前置校验段是否避免了事件预测与吉凶断语？
+            - 是否分析了 `panchanga`（如 Tithi/Yoga）的时空底色，并运用 `special_points` 检查了煞星(Mandi/Gulika)的污染？
             - 是否分析了 Lagna Lord 的强弱（不仅星座，还包含相位/宫位）？
             - 是否结合 Nakshatra 分析了月亮的心智模式？
             - 是否避免无边界绝对化断语？
-            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/1-1/checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/1-1/writer.md。'
+            将审核结论写入 workspace/steps/1-1/checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿。
+            本步润色重点：让用户了解自己的基础性格画像——这是全篇定调的段落，语气温和、有亲和力。
+            去术语化重点：Nakshatra、Pada、Lagna Lord、Kemadruma 等基础术语需全部转化为直觉可感知的性格描述。
+            产出 workspace/steps/1-1/writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/1-1/writer.md，对照原稿 workspace/steps/1-1/analyst.md。
+            本步差异化关注：
+            - 基础性格画像是否完整保留（Lagna 气质 + Moon 心智模式）？
+            - Panchanga 时空底色是否被省略或错误简化？
+            - 前置校验段不应被润色师改写为带有吉凶判断的叙事。
       -
         key: '2-1'
         title: '行星状态、交战与灵魂意志'
@@ -51,13 +61,24 @@ rounds:
             - Jaimini 指标：不仅要确定 Atmakaraka (灵魂指示星/AK)，还必须标出 Amatyakaraka (AmK/事业星) 和 Darakaraka (DK/伴侣星)，为后续领域分析定位。
             完成后产出 workspace/steps/2-1/analyst.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否涵盖了全部九大星体（Nine Grahas，包含 Rahu/Ketu）？
             - 是否通过 Shadbala / Vimsopaka / Avasthas 验证了星体的真实力量（而非只看庙旺落陷表面）？
             - 是否检查了星体交战（war.winner/loser），并剔除了交战败者的利好论断？
             - 是否找出了 8 个 Chara Karakas 中的关键星（AK/AmK/DK）而不仅是 AK？
-            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/2-1/checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/2-1/writer.md。'
+            将审核结论写入 workspace/steps/2-1/checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿。
+            本步润色重点：大量 Shadbala/Vimsopaka/Avastha 等量化术语需转化为直觉可感知的力量描述（如"这颗星精力充沛"vs"这颗星像个打了瞌睡的老人"）。
+            去术语化重点：行星交战、焦伤、Chara Karaka 等概念需用现实比喻替代。
+            语气要求：客观描述各星体特质，避免单纯罗列好坏。
+            产出 workspace/steps/2-1/writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/2-1/writer.md，对照原稿 workspace/steps/2-1/analyst.md。
+            本步差异化关注：
+            - 行星力量的强弱定性是否与原稿一致（原稿"交战失败"不能润色成"稍有不足"）？
+            - AK/AmK/DK 三个灵魂指标的现实映射是否保留？
+            - 量化分值虽然不出现在口语稿，但力量高低的判断方向不能反转。
       -
         key: '2-2'
         title: '罗睺-计都业力轴线'
@@ -71,19 +92,24 @@ rounds:
             轴线张力：分析这对矛盾（如 1/7 轴自我与伴侣，4/10 轴家庭与事业）如何撕扯缘主的人生，并指出平衡之道。
             完成后产出 workspace/steps/2-2/analyst.md。
           checker: |-
-            审核 analyst 的本步输出。`checker_prompt.md` 当前没有为"罗睺-计都业力轴线"单独列出阶段清单，因此本步至少完整执行以下通用检查：
-            - 步骤目标核实：检查师必须首先确认分析师输出的模块层级是否与当前 step 匹配。
-            - 单步检查：分析师必须每次只输出一个步骤。如果分析师一次输出了多个步骤或跨阶段，直接判定不通过。
-            - 幻觉零容忍：检查所有关键结论是否都有盘面证据支持。
-            - 证据回链强约束：现实映射中的每条核心断语，必须能回链到技法证据锚点（`[evidence: E#]`）。无回链则判定不通过。
-            - 双层表达强约束：技法推演层允许术语；现实映射层应直白、可观察、少术语；若现实映射仍充斥术语且缺乏现实事件描述，判定不通过。
-            - Agent 工具监督：验证 Analyst 是否在缺乏深度数据时合理调用了 Jhora MCP 工具。若在需要行运 Kakshya 给分或细化 BAV 时仅靠盲猜而未主动调用工具，或引用的工具数据与结论严重背离，判定不通过。
-            - 量化与状态一票否决：对于没有 Ashtakavarga / Vimsopaka 高分支持、且处于交战失败 (`war.loser`) 或严重焦伤状态的星体，一旦分析师下达了任何极其乐观的大吉断语，必须直接判定不通过。
-            - Analyst 输出协议对齐检查：Part A 应包含 `A0 总断命题`、`A1 证据链(E#)`、`A2 反证链(CE#)`、`A3 裁决层`；Part B 应包含 `B0 角色雷达表（动态）` 与 `B1 详细现实断语`。
-            - 现实映射专项检查：是否出现至少 3 条可观察现实断语（事件级，不是抽象能量词）；每条核心断语是否可通过 `[evidence: <层级标记>#]` 回链到 Part A；是否避免给出危险/违法/高风险医疗金融指令。
-            - 最终判定指令：无论本步判定为通过/重写/转人工，你都必须直接给出最终判定。
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
+            - 是否正确区分了 Rahu 的"渴望/执着/幻觉"与 Ketu 的"厌离/先天/放下"——二者不可混淆？
+            - 轴线张力分析是否给出了现实事件级的冲突描述（而非仅停留在抽象的"能量拉扯"）？
+            - 是否将 Rahu/Ketu 与 Nakshatra Pada 结合分析（共享理论协议 §10 要求 Pada 贯穿全流程）？
+            - 是否避免了将 Rahu/Ketu 简单标签化为纯凶/纯吉？
             将审核结论写入 workspace/steps/2-2/checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/2-2/writer.md。'
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿。
+            本步润色重点：Rahu-Ketu 轴线是全篇最"哲理"的部分，要用生动的现实场景（如"你疯狂追求事业成就，却内心深处最渴望家庭温暖"）替代抽象的业力描述。
+            去术语化重点：北交点/南交点、业力轴线等概念需完全转化。
+            语气要求：可以稍带诗意，但核心是让用户认出自己的内心矛盾。
+            产出 workspace/steps/2-2/writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/2-2/writer.md，对照原稿 workspace/steps/2-2/analyst.md。
+            本步差异化关注：
+            - Rahu（渴望）与 Ketu（厌离）的对立方向是否保留完整？
+            - 轴线冲突的现实表现是否与原稿一致，未被诗意化到失真？
+            - "平衡之道"建议是否保持了原稿的操作性？
       -
         key: '2-3'
         title: '核心格局、宫位互动与显化'
@@ -98,14 +124,26 @@ rounds:
             - 显化分析：不仅列出名字，更要解释该格局在现实生活中的具体显化形式（是富而不贵？是有名无实？还是先苦后甜？）。参考 D9 确认格局的"果实"是否饱满。
             完成后产出 workspace/steps/2-3/analyst.md。
           checker: |-
-            审核 analyst 的本步输出，先检查宫位与相位，再检查核心 Yoga：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否运用了 Arudha Lagna (AL) 视角？
             - 相位分析是否包含 Jaimini 符号相位（若适用）？
             - 凶宫（6/8/12）是否做了辩证分析（非纯粹负面）？
             - 提出的 Yoga 是否有明确构成条件说明？
             - 是否评估了 Yoga 的强弱（而非见 Yoga 就断吉）？
-            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/2-3/checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/2-3/writer.md。'
+            - 是否调用了 `jhora_yoga` 工具进行 Yoga 枚举？若仅凭记忆列举 Yoga 而未核验 → 提示补充。
+            将审核结论写入 workspace/steps/2-3/checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿。
+            本步润色重点：Yoga 格局名称（Raja Yoga、Dhana Yoga 等）需全部转化为现实场景描述（如"你的盘面里藏着一个'权力阶梯'结构"）。
+            去术语化重点：Yoga 名称、Pancha Mahapurusha、Arudha Lagna、Drishti 等全部需要口语化。
+            语气要求：重点传达格局的"现实显化形式"——是什么样的人生剧本，不是什么Yoga名字。
+            产出 workspace/steps/2-3/writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/2-3/writer.md，对照原稿 workspace/steps/2-3/analyst.md。
+            本步差异化关注：
+            - Yoga 的强弱判定是否保留（原稿说"有但弱"不能润色成"大有可为"）？
+            - 显化分析的具体形式是否完整传达？
+            - 凶宫的辩证面（非纯负面）是否在口语稿中有体现？
       -
         key: '3-1'
         title: 'Navamsa (D9) 深度解码'
@@ -119,12 +157,24 @@ rounds:
             - 灵魂渴望：分析 Karakamsha Lagna (AK在D9的落宫) 的精神追求。
             完成后产出 workspace/steps/3-1/analyst.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否对比了行星在 D1 与 D9 的状态变化（Vargottama 等）？
             - 是否分析了 Karakamsha 及其灵魂层影响？
             - 是否涉及婚姻/伴侣的深层业力？
-            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/3-1/checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/3-1/writer.md。'
+            - D9 分析是否遵守了 shared 理论协议 §12 的 Vargas 用途边界（D9=婚姻/内在果实）？
+            将审核结论写入 workspace/steps/3-1/checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿。
+            本步润色重点：D9 作为"果实之盘"的概念需用直白的话解释（如"你外在的努力最终结出什么果"）。
+            去术语化重点：Navamsa、Vargottama、Karakamsha 等必须完全转化。
+            语气要求：涉及婚恋本质和后半生走向，语气可以稍显沉稳，但保持温暖。
+            产出 workspace/steps/3-1/writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/3-1/writer.md，对照原稿 workspace/steps/3-1/analyst.md。
+            本步差异化关注：
+            - "D1 好 D9 差"的落差判断是否保留（不能润色成"总体还行"）？
+            - 婚恋本质的深层分析是否完整传达？
+            - Karakamsha 的灵魂追求是否用口语化方式保留？
       -
         key: '3-2'
         title: '分盘与特殊业力 (Vargas & Doshas)'
@@ -136,12 +186,24 @@ rounds:
             - 业力缺陷 (Dosha)：检查 Kaal Sarpa (蛇煞), Mangal Dosha (火星刑克), Pitra Dosha (祖先业力) 等，并解释其对人生的具体考验。
             完成后产出 workspace/steps/3-2/analyst.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否针对特定领域使用了正确分盘（如事业看 D10）？
             - Dosha 分析是否给出成立/缓解条件说明？
             - 是否引用 Shadbala 或 Ashtakavarga 作为量化支持？
-            给出结构化判定：仅当本步已达到合格线、无需分析师返工时，才可 `decision="pass"`；只要存在必须修改/不改会影响合规或严谨性的问题，就必须 `decision="revise"`；若需要缘主补充信息才能判定，就必须 `decision="need_human"`，并在 `human_questions` 里列出问题清单。将审核结论写入 workspace/steps/3-2/checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/3-2/writer.md。'
+            - Dosha 判定是否同时检查了取消条件（如 Mangal Dosha 的 cancellation rules）？
+            将审核结论写入 workspace/steps/3-2/checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿。
+            本步润色重点：Dosha（业力缺陷）是最容易吓到用户的部分，必须准确传达"这是考验不是判刑"的态度。
+            去术语化重点：Kaal Sarpa、Mangal Dosha、Pitra Dosha 等需转化为现实描述（如"你的感情路上自带一个'先磨合再甜蜜'的模式"）。
+            语气要求：直白但不恐吓，重点传达考验的具体表现和应对方向。
+            产出 workspace/steps/3-2/writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/3-2/writer.md，对照原稿 workspace/steps/3-2/analyst.md。
+            本步差异化关注：
+            - Dosha 的严重程度定性是否与原稿一致（原稿"成立且无缓解"不能润色成"小小考验"）？
+            - 缓解条件是否保留传达？
+            - 是否避免了恐吓性措辞（同时也没有过度轻描淡写）？
       -
         key: '3-3'
         title: 'Jaimini 灵魂架构与 Ashtakavarga 宫气分值'
@@ -153,19 +215,24 @@ rounds:
             - Ashtakavarga 扫描：强制查阅 D-1 盘的 SAV (八字分值) 总分，明确点出得分极高（天然顺遂）与得分极低（天然黑洞）的宫位，定下该人生的"天花板"与"薄弱区"。
             完成后产出 workspace/steps/3-3/analyst.md。
           checker: |-
-            审核 analyst 的本步输出。`checker_prompt.md` 当前没有为"Jaimini 灵魂架构与 Ashtakavarga 宫气分值"单独列出阶段清单，因此本步至少完整执行以下通用检查：
-            - 步骤目标核实：检查师必须首先确认分析师输出的模块层级是否与当前 step 匹配。
-            - 单步检查：分析师必须每次只输出一个步骤。如果分析师一次输出了多个步骤或跨阶段，直接判定不通过。
-            - 幻觉零容忍：检查所有关键结论是否都有盘面证据支持。
-            - 证据回链强约束：现实映射中的每条核心断语，必须能回链到技法证据锚点（`[evidence: E#]`）。无回链则判定不通过。
-            - 双层表达强约束：技法推演层允许术语；现实映射层应直白、可观察、少术语；若现实映射仍充斥术语且缺乏现实事件描述，判定不通过。
-            - Agent 工具监督：验证 Analyst 是否在缺乏深度数据时合理调用了 Jhora MCP 工具。若在需要行运 Kakshya 给分或细化 BAV 时仅靠盲猜而未主动调用工具，或引用的工具数据与结论严重背离，判定不通过。
-            - 量化与状态一票否决：对于没有 Ashtakavarga / Vimsopaka 高分支持、且处于交战失败 (`war.loser`) 或严重焦伤状态的星体，一旦分析师下达了任何极其乐观的大吉断语，必须直接判定不通过。
-            - Analyst 输出协议对齐检查：Part A 应包含 `A0 总断命题`、`A1 证据链(E#)`、`A2 反证链(CE#)`、`A3 裁决层`；Part B 应包含 `B0 角色雷达表（动态）` 与 `B1 详细现实断语`。
-            - 现实映射专项检查：是否出现至少 3 条可观察现实断语（事件级，不是抽象能量词）；每条核心断语是否可通过 `[evidence: <层级标记>#]` 回链到 Part A；是否避免给出危险/违法/高风险医疗金融指令。
-            - 最终判定指令：无论本步判定为通过/重写/转人工，你都必须直接给出最终判定。
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
+            - SAV 是否使用了 D1 主盘数据（BAV/SAV 严禁用于 Vargas，遵守共享理论协议 §12）？
+            - 是否标注了极高（≥30）和极低（≤22）的宫位？
+            - Jaimini Karaka 联动是否与 2-1 步骤的 AK/AmK/DK 定位一致？若存在矛盾须指出。
+            - SAV 数据是否通过 jhora 工具获取，而非凭经验估算？
             将审核结论写入 workspace/steps/3-3/checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿，产出 workspace/steps/3-3/writer.md。'
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理面向用户的可读稿。
+            本步润色重点：SAV 分值的"天花板"与"薄弱区"概念要用生活化的比喻（如"你的事业区域天生有一片肥沃土壤，但感情区域的地质条件比较贫瘠"）。
+            去术语化重点：Ashtakavarga、SAV、Chara Karaka、Karakamsha 等全部需要转化。
+            语气要求：为全篇基线分析收尾，语气可以稍显总结性，但不要变成公文式"综上所述"。
+            产出 workspace/steps/3-3/writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/3-3/writer.md，对照原稿 workspace/steps/3-3/analyst.md。
+            本步差异化关注：
+            - SAV 分值的高低判断方向是否保留（原稿"极低"不能润色成"还行"）？
+            - Jaimini 三个灵魂指标（AK/AmK/DK）的现实映射是否完整？
+            - 天花板与薄弱区的对比是否清晰传达？
       -
         key: '4-1'
         title: '本命综合结论'
@@ -178,13 +245,27 @@ rounds:
             3. **风险清单**：只写缺点、盲点、反模式与高风险点，用"触发条件 → 典型表现 → 具体代价"格式，覆盖至少 6 个领域，标注哪些风险与后续时间片触发有关。
             4. **前事验证问题清单**：把待验证点改写成用户可回答的问题，优先整理时间窗口验证题，再补结构性验证题，并给出下一轮最值得追问的方向。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 四大目标结论是否直接回答用户关切且逻辑来自前序分析？
             - 补救建议是否安全可行，是否包含免责声明？
-            - 风险清单是否用触发条件表达，是否覆盖 6 个以上领域？
+            - 风险清单是否用"触发条件 → 典型表现 → 具体代价"格式，是否覆盖 6 个以上领域？
             - 验证问题是否可回答，是否区分时间窗口题与结构性题？
-            给出结构化判定，并将结论写入 workspace/steps/natal/summary.checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理本命综合结论的可读稿，产出 workspace/steps/natal/summary.writer.md。'
+            - 风险清单中标注"与时间片触发相关"的风险，是否与前序基线证据一致？
+            将审核结论写入 workspace/steps/natal/summary.checker.md。
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理本命综合结论的可读稿。
+            本步润色重点：这是全篇最重要的总结段落，语气需要更郑重、有分量感。
+            风险清单润色要求：必须直白预警，不能用安慰性措辞掩盖风险。"触发条件 → 典型表现 → 具体代价"的结构可以口语化，但三要素不能缺。
+            补救建议润色要求：保持实操性，免责声明必须保留。
+            验证问题润色要求：转化为用户友好的提问方式，但问题本身不能变形。
+            产出 workspace/steps/natal/summary.writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/natal/summary.writer.md，对照原稿 workspace/steps/natal/summary.md。
+            本步差异化关注：
+            - 风险清单是否完整保留（条数、严重程度、触发条件三要素）？风险不能被轻描淡写。
+            - 免责声明是否保留？
+            - 验证问题是否保持了原有的问题方向和意图？
+            - 四大目标的结论方向是否与原稿一致？
       -
         key: '6-0'
         title: '本命模块路由与裁剪'
@@ -209,7 +290,7 @@ rounds:
             6. 本步只负责路由、排序与本命模块子任务树规划，禁止展开任何具体模块分析内容。
             本步无需产出额外文件，`task_update` 对任务流的更新即为本步产物。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否明确列出可选模块中的保留结果、裁剪结果及其理由？
             - 是否真的通过 `task_update` 将占位 `6-1` 替换为首个模块并按需插入更多 6-x？
             - 更新后的任务步骤 description 中是否写明各保留模块的顺序、提示词路径与产物路径？
@@ -220,7 +301,7 @@ rounds:
         status: 'pending'
         description:
           analyst: |-
-            本步为本命模块占位步骤，由 6-0 根据路由结果替换为具体模块分析任务（如“事业与成就模块”或“财富与资产模块”）。
+            本步为本命模块占位步骤，由 6-0 根据路由结果替换为具体模块分析任务（如"事业与成就模块"或"财富与资产模块"）。
             **执行时**：
             1. 调用 `task_read(view="context", agent="analyst")` 确认当前模块的名称、提示词路径、产物路径与优先级。
             2. 读取对应模块提示词（`workspace/prompts/modules/{module-prompt}.md`）与已完成基线/综合步骤，确认当前模块的展开边界。
@@ -228,13 +309,26 @@ rounds:
             4. 本步只处理当前模块，禁止回退成总控或提前展开其他本命模块。
             产出 workspace/steps/natal/modules/{module-key}.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否只处理了当前模块，未跨到其他本命模块或回退成总控？
             - 是否通过 `task_read` 读取并遵守了当前模块定义、模块边界与对应提示词路径？
             - 关键结论是否能回扣到已完成基线/综合步骤与当前模块专项提示词？
+            - Part A 是否包含 A-Pre（基线桥接 [Ref: step.E#] 格式）？
+            - 是否使用了对应领域的主分盘（如 career → D10、love → D9、wealth → D2）？
+            - B2 触发条件是否严格去术语化（无行星名、无梵文、无宫位编号、无分盘代号）？
             将审核结论写入 workspace/steps/natal/modules/{module-key}.checker.md。
           writer: |-
-            基于已通过的 analyst 输出与 checker 结论，整理当前模块的可读稿，产出 workspace/steps/natal/modules/{module-key}.writer.md。
+            基于已通过的 analyst 输出与 checker 结论，整理当前模块的可读稿。
+            本步润色重点：本命模块的 B2（触发条件清单）需要保持操作性——什么情况下会发生什么、该做什么/不该做什么。不能变成鸡汤。
+            去术语化重点：模块特有的专业概念（如 D10 事业分盘、Dhana Yoga 财富格局等）需全部转化。
+            语气要求：像老友讨论人生某个具体领域，深入但不沉重。
+            产出 workspace/steps/natal/modules/{module-key}.writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/natal/modules/{module-key}.writer.md，对照原稿 workspace/steps/natal/modules/{module-key}.md。
+            本步差异化关注（本命模块通用）：
+            - 触发条件（B2）的操作性建议（Do/Don't）是否保持了具体可执行？（"签约前找律师"不能变成"凡事多留心"）
+            - 跨模块 Cross-Link 标记是否保留？
+            - 模块结论的严重程度定性是否与原稿一致？
       -
         key: '7-0'
         title: '时间片总控与 Dasha 选择'
@@ -256,11 +350,12 @@ rounds:
             6. **分步调用 `task_update`**：每次只插入当前 MD 的子任务树，确认写入后再插入下一段 MD 的子任务树，不得一次性批量写入所有 MD 步骤。
             本步无需产出额外文件，`task_update` 对任务流的更新即为本步产物。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查：
             - 是否调用了 `jhora_dasha` 获取真实数据，而非凭空推算？
             - 是否给出了时间片选择的理由（为何选这几段 MD/AD）？
             - 是否为每段 MD 插入了完整子任务树（包含 MD总控、AD路由、AD分析、聚合报告各层）？
             - 是否真的通过 `task_update` 更新了任务流，而不只是在正文里描述计划？
+            - 是否遵守了"分步调用"原则（逐个 MD 插入，非批量）？
       -
         key: '7-1'
         title: '{MD主星} 大运总控+领域分析（占位，由 7-0 动态替换）'
@@ -276,12 +371,28 @@ rounds:
             5. 分析完成后，**必须明确输出"AD 层触发建议"**：列出本 MD 内各 AD 的信号强度，标注哪些 AD 需要 PD 钻取，供下一步 `7-x-0` AD 路由参考。
             产出 workspace/steps/timeline/{md-key}/md.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查（MD 总控专项）：
             - 是否只分析了 MD 层（总控+领域），未提前展开 AD/PD 内容？
             - 领域分析是否只覆盖了有信号的领域，跳过的是否有理由？
             - 是否输出了"AD 层触发建议"（各 AD 信号强度 + PD 触发标记）？
+            - 激活矩阵中各领域的 HIGH/MEDIUM/LOW 判定是否有本命模块 A3 触发条件支持？
+            - 三阶段演化模型（换档期/盛放期/交割期）是否以 AD 为时间刻度而非具体月份？
+            - MD 层是否严守"Dasha 定方向"原则——未出现精确到月的事件预测？
+            - 证据标记是否使用 TE#/TCE#（总控）和 DE#/DCE#（领域）？
             将审核结论写入 workspace/steps/timeline/{md-key}/md.checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理 MD 总控与领域分析可读稿，产出 workspace/steps/timeline/{md-key}/md.writer.md。'
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理 MD 总控与领域分析可读稿。
+            本步润色重点：MD 是跨度 16-20 年的大时段分析。需要传达"人生阶段感"，而非事件预测。
+            去术语化重点：大运、MD 主星、激活矩阵、领域等概念需完全转化为人生阶段描述。
+            语气要求：有纵深感的人生叙事，像在讲述一段即将展开的人生旅程。
+            产出 workspace/steps/timeline/{md-key}/md.writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/timeline/{md-key}/md.writer.md，对照原稿 workspace/steps/timeline/{md-key}/md.md。
+            本步差异化关注（MD 总控专项）：
+            - 三阶段演化模型的先后顺序和时间跨度感是否保留？
+            - 各领域的激活程度判断（HIGH/MEDIUM/LOW）是否在口语稿中有对应的轻重表达？
+            - "AD 层触发建议"不需要出现在用户稿中，但各领域的风险标注不能遗漏。
+            - 是否避免了精确到月的事件预测（MD 层只给方向）？
       -
         key: '7-1-0'
         title: '{MD主星} 大运 AD 路由（占位，由 7-0 动态替换）'
@@ -297,10 +408,11 @@ rounds:
             5. 本步只做路由决策，禁止展开任何 AD/PD 分析内容。
             本步无需产出额外文件，`task_update` 对任务流的更新即为本步产物。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查（AD 路由专项）：
             - 是否只做了路由决策，没有提前展开 AD/PD 内容？
             - 对每个 AD 是否给出了明确的 PD 触发/跳过判断及理由？
             - 若有 PD 步骤，是否真的通过 `task_update` 更新了任务流？
+            - 路由决策是否与 MD 总控产出的"AD 层触发建议"一致（或说明了偏离理由）？
       -
         key: '7-1-1'
         title: '{MD主星}/{AD主星} 子运分析（占位，由 7-0/7-1-0 动态替换）'
@@ -317,15 +429,32 @@ rounds:
             6. 禁止在本步展开 PD 层内容（PD 有独立步骤 `7-x-y-0`）。
             产出 workspace/steps/timeline/{md-key}/ad_{ad-key}.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查（AD 分析专项）：
             - 是否只分析了该 AD 层，未展开 PD 内容？
             - 领域分析是否只覆盖本 AD 有信号的领域？
             - 结论是否与 MD 总控方向一致（或明确说明了为何偏离）？
-            - 多维时间验证是否符合 `ad_prompt.md` 与 shared JHora/理论协议，且没有在本步自造 Transit、BAV/SAV、Tajaka 或 Yoga 显化口径？
-            - high/critical 时间断语是否具备 shared 协议要求的数据来源、Transit 锚点、BAV 有效性与必要降级说明？
-            - 若本 AD 跨自然年，Tajaka 是否按 shared JHora 指南处理，且异常输出没有被当作强证？
+            - 是否完成了三重上游桥接（ad_general + {domain}_md + natal module）？缺少任一 → revise。
+            - 多维时间验证是否符合 ad_prompt.md 与 shared 协议？
+            - high/critical 时间断语是否具备 Transit 锚点、BAV 有效性校验？
+            - 若本 AD 跨自然年，是否调用了 Tajaka？
+            - 事件窗口时间跨度是否 ≤2 个自然月？
+            - 证据标记是否使用 AE#（总控）/ ADE#/ADCE#（领域）？
+            - Part B 是否包含 ≥10 个可观察动作动词？是否完全去术语化（无行星名/梵文/宫位号/分盘代号）？
             将审核结论写入 workspace/steps/timeline/{md-key}/ad_{ad-key}.checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理该 AD 分析可读稿，产出 workspace/steps/timeline/{md-key}/ad_{ad-key}.writer.md。'
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理该 AD 分析可读稿。
+            本步润色重点：AD 是 2-3 年的时间窗口分析，精度高于 MD。需要传达具体的"该做什么/不该做什么"。
+            时间窗口润色要求：原稿中的时间窗口（如"2025.06-08"）必须原样保留精度，绝不能模糊化。
+            Do/Don't 建议润色要求：保持操作性和具体性，每条建议都要有明确的动作指向。
+            去术语化重点：所有行星名、分盘代号、宫位编号在口语稿中必须零残留。
+            产出 workspace/steps/timeline/{md-key}/ad_{ad-key}.writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/timeline/{md-key}/ad_{ad-key}.writer.md，对照原稿 workspace/steps/timeline/{md-key}/ad_{ad-key}.md。
+            本步差异化关注（AD 分析专项）：
+            - 时间窗口精度是否完整保留（这是 AD 层最重要的保真项）？
+            - Do/Don't 行动建议是否保持了具体可执行（"签约前找律师过一遍"不能变成"凡事多留心"）？
+            - 事件对象分层（"伴侣"、"客户"、"对手"、"家人"）是否保留清晰？
+            - 原稿中 critical/high 级别的风险预警是否在口语稿中有同等力度的表达？
       -
         key: '7-1-1-0'
         title: '{MD主星}/{AD主星} PD 钻取（条件触发，占位）'
@@ -340,12 +469,27 @@ rounds:
             4. 钻取 PD 层时间节点，重点关注事件窗口内的关键 PD 触发点，给出可观察时间断语。
             产出 workspace/steps/timeline/{md-key}/pd_{ad-key}.md。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查（PD 钻取专项）：
             - PD 时间边界是否来自 `jhora_dasha` 真实数据，而非推算？
             - 是否聚焦在上游 AD 步骤识别出的事件窗口内，而非全面铺开 PD？
             - 时间断语是否可观察、可验证？
+            - pd_map 是否与 pd_segments 计数一致？
+            - 第一个 PD 段是否未被跳过？
+            - 证据标记是否使用 PDE#？
+            - Maraka + Lagna Lord 冲突 PD 是否自动标注为最高置信度？
             将审核结论写入 workspace/steps/timeline/{md-key}/pd_{ad-key}.checker.md。
-          writer: '基于已通过的 analyst 输出与 checker 结论，整理 PD 钻取可读稿，产出 workspace/steps/timeline/{md-key}/pd_{ad-key}.writer.md。'
+          writer: |-
+            基于已通过的 analyst 输出与 checker 结论，整理 PD 钻取可读稿。
+            本步润色重点：PD 是最精确的时间层（精确到月），时间窗口的精度是生命线，绝对不能模糊化。
+            去术语化重点：PD、Pratyantardasha 等概念不出现，用"关键月份"等口语替代。
+            语气要求：精准、直接，像老友在帮你圈日历上的关键日期。
+            产出 workspace/steps/timeline/{md-key}/pd_{ad-key}.writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/timeline/{md-key}/pd_{ad-key}.writer.md，对照原稿 workspace/steps/timeline/{md-key}/pd_{ad-key}.md。
+            本步差异化关注（PD 钻取专项）：
+            - 精确到月的时间窗口是否完整保留？这是 PD 层的最高红线。
+            - 原稿中标注为 critical 的事件节点是否在口语稿中有同等力度的警示？
+            - 可观察时间断语是否保持了具体性？
       -
         key: '7-1-z'
         title: '{MD主星} 大运聚合报告（占位，由 7-0 动态替换）'
@@ -370,11 +514,24 @@ rounds:
             3. 若时间片证据推翻或细化了前序本命报告，允许回写 steps/natal/ 下相关文件，并在报告中说明改动。
             产出 workspace/steps/timeline/{md-key}/report.md（最终用户交付产物）。
           checker: |-
-            审核 analyst 的本步输出，检查项：
+            执行通用技术审查基线（checker_prompt §4），叠加以下专项检查（MD 聚合报告专项）：
             - 是否完整整合了本 MD 下所有已完成的 AD/PD 子步骤产物，无遗漏？
             - 报告结构是否清晰（MD→AD→PD 层次分明）？
             - 若有回写前序报告，是否有清晰的时间证据与改动说明？
+            - 各子步骤之间的结论是否一致？若有冲突须指出。
+            - 聚合后的时间线是否连贯，无逻辑跳跃？
             将审核结论写入 workspace/steps/timeline/{md-key}/report.checker.md。
           writer: |-
-            基于已通过的 analyst 输出与 checker 结论，整理该段 MD 完整聚合报告的可读稿，产出 workspace/steps/timeline/{md-key}/report.writer.md。
+            基于已通过的 analyst 输出与 checker 结论，整理该段 MD 完整聚合报告的可读稿。
+            本步润色重点：这是用户最终阅读的完整大运报告，需要叙事流畅、结构清晰、前后衔接。
+            时间线润色要求：所有时间窗口必须原样保留精度，各 AD 之间的时间衔接要自然。
             若时间片阶段已回写了前序报告，writer 必须按最新口径同步整理。
+            语气要求：像一个老友帮你讲述未来几年的人生故事，有节奏感、有重点标注、有温度。
+            产出 workspace/steps/timeline/{md-key}/report.writer.md。
+          checker_review: |-
+            以模式 B 审查 writer 产出的 workspace/steps/timeline/{md-key}/report.writer.md，对照原稿 workspace/steps/timeline/{md-key}/report.md。
+            本步差异化关注（MD 聚合报告专项）：
+            - 所有子步骤（AD/PD）的关键结论是否完整保留？
+            - 时间线的精度和前后衔接是否完整？
+            - 风险预警在聚合后是否仍有足够力度（不能在合并时被稀释）？
+            - 若有回写前序报告的改动，口语稿是否同步反映了最新口径？
