@@ -1,1 +1,0 @@
-email=u@test.com app_id=app123 APP_AI_KEY=sk-plain123456 JWT=jwt.token.value
