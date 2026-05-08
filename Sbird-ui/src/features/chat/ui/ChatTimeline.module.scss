@@ -1,0 +1,47 @@
+// ChatTimeline.module.scss
+
+.timeline {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 28px;
+
+  // Thin custom scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--sb-border);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-border) transparent;
+}
+
+// Each message row — thinking card + bubble stacked
+.messageRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &.messageRowUser {
+    align-items: flex-end;
+  }
+
+  &.messageRowAgent {
+    align-items: flex-start;
+  }
+}
+
+.thinkingWrapper {
+  width: 100%;
+  max-width: 640px;
+}

@@ -1,0 +1,1 @@
+export { default as WorkbenchShell } from './ui/WorkbenchShell';

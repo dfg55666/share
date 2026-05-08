@@ -1,0 +1,52 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px 0;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--sb-bg-hover, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--sb-border, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--sb-text-primary, #e8e8e8);
+}
+
+.fileIcon {
+  flex-shrink: 0;
+  color: var(--sb-text-muted, #888);
+}
+
+.fileName {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  color: var(--sb-text-muted, #888);
+  font-size: 11px;
+}
+
+.removeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--sb-text-muted, #888);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+
+  &:hover {
+    color: var(--sb-text-primary, #e8e8e8);
+    background: rgba(255, 255, 255, 0.1);
+  }
+}

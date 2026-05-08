@@ -1,0 +1,20 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  white-space: nowrap;
+  line-height: 1.5;
+
+  &.primary {
+    background-color: var(--sb-primary-light);
+    color: var(--sb-primary);
+  }
+
+  &.muted {
+    background-color: var(--sb-bg-gray);
+    color: var(--sb-text-muted);
+  }
+}

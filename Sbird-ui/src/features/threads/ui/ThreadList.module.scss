@@ -1,0 +1,118 @@
+.threadList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--sb-radius-sm);
+  transition: background-color var(--sb-transition-fast);
+
+  &:hover {
+    background-color: var(--sb-bg-gray);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-primary);
+    outline-offset: 1px;
+  }
+}
+
+.groupLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sb-text-primary);
+  flex: 1;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.chevron {
+  color: var(--sb-text-muted);
+  flex-shrink: 0;
+  transition: transform var(--sb-transition-fast);
+  transform: rotate(-90deg);
+}
+
+.chevronOpen {
+  transform: rotate(0deg);
+}
+
+.threadItems {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 16px;
+  padding-bottom: 4px;
+}
+
+.threadItem {
+  display: flex;
+  align-items: center;
+  gap: var(--sb-space-2);
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--sb-radius-sm);
+  font-size: 13px;
+  font-family: var(--sb-font-family);
+  color: var(--sb-text-secondary);
+  text-align: left;
+  transition: background-color var(--sb-transition-fast), color var(--sb-transition-fast);
+
+  &:hover {
+    background-color: var(--sb-bg-gray);
+    color: var(--sb-text-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-primary);
+    outline-offset: 1px;
+  }
+
+  &.active {
+    color: var(--sb-primary);
+    font-weight: 500;
+  }
+}
+
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--sb-text-muted);
+  opacity: 0.5;
+  transition: background-color var(--sb-transition-fast);
+}
+
+.dotActive {
+  background-color: var(--sb-primary);
+  opacity: 1;
+}
+
+.threadTitle {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}

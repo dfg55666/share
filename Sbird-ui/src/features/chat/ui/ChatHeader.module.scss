@@ -1,0 +1,102 @@
+// ChatHeader.module.scss
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px 16px;
+  background: transparent;
+  border-bottom: 1px solid var(--sb-border-light);
+  flex-shrink: 0;
+}
+
+// ── Left section ──────────────────────────────────────────────────────────────
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--sb-text-primary);
+  line-height: 1.2;
+}
+
+.sessionId {
+  font-size: 12px;
+  color: var(--sb-text-muted);
+  font-family: var(--sb-font-mono);
+}
+
+// ── Right section (agent chips) ───────────────────────────────────────────────
+.agents {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.chipAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--sb-radius-full);
+  border: 2px solid var(--sb-border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color var(--sb-transition-fast);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.chipAvatarIcon {
+  background: var(--sb-primary-light);
+  color: var(--sb-primary);
+}
+
+.chipAvatarAdd {
+  background: var(--sb-bg-gray);
+  border: 2px dashed var(--sb-border);
+  color: var(--sb-text-muted);
+  cursor: pointer;
+  transition: border-color var(--sb-transition-fast),
+    color var(--sb-transition-fast),
+    background var(--sb-transition-fast);
+
+  &:hover {
+    border-color: var(--sb-primary);
+    color: var(--sb-primary);
+    background: var(--sb-primary-lighter);
+  }
+}
+
+.chipName {
+  font-size: 11px;
+  color: var(--sb-text-secondary);
+  font-weight: 500;
+  max-width: 56px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipTag {
+  font-size: 10px;
+  color: var(--sb-text-muted);
+  line-height: 1;
+}

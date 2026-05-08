@@ -1,0 +1,75 @@
+// ===== Sbird Workbench Design Tokens =====
+// Prefix: --sb-* to avoid collision with existing tokens
+
+:root {
+  // Brand
+  --sb-primary: #7C5CFC;
+  --sb-primary-light: #EDE9FE;
+  --sb-primary-lighter: #F5F3FF;
+  --sb-primary-dark: #6D4AE6;
+  --sb-primary-alpha-08: rgba(124, 92, 252, 0.08);
+  --sb-primary-alpha-35: rgba(124, 92, 252, 0.35);
+  --sb-primary-alpha-45: rgba(124, 92, 252, 0.45);
+
+  // Text
+  --sb-text-primary: #1a1a2e;
+  --sb-text-secondary: #6b7280;
+  --sb-text-muted: #9ca3af;
+  --sb-text-input-icon: #b0b0be;
+
+  // Backgrounds
+  --sb-bg-white: #ffffff;
+  --sb-bg-gray: #f9fafb;
+  --sb-bg-app: #f5f5f7;
+  --sb-bg-chat: #fafafa;
+
+  // Borders
+  --sb-border: #e5e7eb;
+  --sb-border-light: #f3f4f6;
+
+  // Semantic
+  --sb-green: #22c55e;
+  --sb-red: #ef4444;
+  --sb-blue: #3b82f6;
+
+  // Avatar colors
+  --sb-avatar-purple: #a78bfa;
+  --sb-avatar-green: #34d399;
+  --sb-avatar-blue: #60a5fa;
+
+  // Radii
+  --sb-radius-xs: 4px;
+  --sb-radius-sm: 6px;
+  --sb-radius-md: 10px;
+  --sb-radius-lg: 16px;
+  --sb-radius-xl: 20px;
+  --sb-radius-full: 9999px;
+
+  // Shadows
+  --sb-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --sb-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --sb-shadow-send: 0 2px 10px var(--sb-primary-alpha-35);
+  --sb-shadow-send-hover: 0 4px 16px var(--sb-primary-alpha-45);
+
+  // Typography
+  --sb-font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sb-font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  // Spacing (4px base)
+  --sb-space-1: 4px;
+  --sb-space-2: 8px;
+  --sb-space-3: 12px;
+  --sb-space-4: 16px;
+  --sb-space-5: 20px;
+  --sb-space-6: 24px;
+  --sb-space-7: 28px;
+
+  // Layout
+  --sb-sidebar-width: 272px;
+  --sb-panel-width: 420px;
+  --sb-panel-gap: 12px;
+
+  // Transitions
+  --sb-transition-fast: 0.15s ease;
+  --sb-transition-normal: 0.2s ease;
+}

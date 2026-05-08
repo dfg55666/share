@@ -1,0 +1,60 @@
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  object-fit: cover;
+  user-select: none;
+  font-family: var(--sb-font-family);
+  font-weight: 600;
+  color: #ffffff;
+
+  // Size variants
+  &.sm {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  &.md {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  &.lg {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    border: 2px solid var(--sb-border);
+  }
+
+  // Color variants (for fallback avatars)
+  &.purple {
+    background-color: var(--sb-avatar-purple);
+  }
+
+  &.green {
+    background-color: var(--sb-avatar-green);
+  }
+
+  &.blue {
+    background-color: var(--sb-avatar-blue);
+  }
+
+  &.default {
+    background-color: #9ca3af;
+  }
+}
+
+.fallback {
+  line-height: 1;
+  display: block;
+}
+
+// When used as <img>, override display
+img.avatar {
+  display: inline-block;
+}
