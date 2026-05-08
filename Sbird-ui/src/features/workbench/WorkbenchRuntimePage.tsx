@@ -2,7 +2,7 @@ import React from 'react';
 import { ChatComposerPanel, ChatHeader, ChatTimeline } from '../chat';
 import { RightPanel } from '../panel';
 import { WorkbenchShell } from '../session';
-import { SettingsModal } from '../settings';
+import { SettingsPanel } from '../settings';
 import {
   WorkbenchSidebar,
   type NavItem,
@@ -240,7 +240,7 @@ export function WorkbenchRuntimePage() {
       }
       panel={<RightPanel onExport={() => {}} onGenerateReport={() => {}} />}
     />
-    <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }

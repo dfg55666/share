@@ -1,1 +1,2 @@
-export { default as SettingsModal } from './ui/SettingsModal';
+export { default as SettingsPanel } from './ui/SettingsPanel';
+export type { SettingsPageId } from './ui/SettingsNav';

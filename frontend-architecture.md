@@ -1,6 +1,6 @@
 # Sbird-ui 前端架构文档
 
-> 最后更新：2026-05-07
+> 最后更新：2026-05-08
 
 ## 1. 项目概览
 
@@ -13,6 +13,7 @@ Sbird-ui 是 Sbird 平台的 Web 工作台前端，用于实时展示 AI Agent �
 | 框架 | React 18 (StrictMode) |
 | 语言 | TypeScript 5.6 |
 | 构建 | Vite 6 |
+| 路由 | react-router-dom v7 |
 | 样式 | SCSS Modules |
 | 图标 | lucide-react |
 | 状态管理 | 自研 Runtime Store（基于 `useSyncExternalStore`） |
@@ -28,7 +29,8 @@ Sbird-ui 是 Sbird 平台的 Web 工作台前端，用于实时展示 AI Agent �
 
 ```
 Sbird-ui/src/
-├── main.tsx                    # 入口，挂载 WorkbenchRuntimePage
+├── main.tsx                    # 入口，BrowserRouter + 懒加载 WorkbenchRuntimePage
+├── MockPreviewPage.tsx         # 纯静态 Mock 预览页（不接引擎，用于 UI 开发调试）
 ├── api/                        # 网络层（HTTP + SSE）
 │   ├── ApiClient.ts            # fetch 封装（GET/POST, 超时, 错误提取）
 │   ├── RuntimeApi.ts           # URL 模板构建（路径解析）
@@ -39,6 +41,7 @@ Sbird-ui/src/
 │   ├── timeline/               # Timeline 状态归约器
 │   │   ├── index.ts            # normalizeTimelineItem, applyTimelineEvent, fromSnapshot...
 │   │   └── history_count.ts    # 历史计数工具
+│   ├── thread/                 # 线程域类型
 │   ├── input/                  # PendingInputEntry 类型
 │   ├── server-request/         # ServerRequestReply 构建
 │   └── index.ts
@@ -71,10 +74,12 @@ Sbird-ui/src/
 ├── features/                   # 按业务功能切分的 Feature 模块
 │   ├── workbench/              # 页面入口 + 业务编排
 │   ├── chat/                   # 聊天区域组件
-│   ├── threads/                # 侧边栏线程列表
+│   ├── threads/                # 侧边栏线程列表 + 导航
 │   ├── panel/                  # 右侧面板（图表/摘要）
-│   └── session/                # 布局壳
+│   ├── session/                # 布局壳（WorkbenchShell）
+│   └── settings/               # 设置面板（全屏覆盖层 + 左导航 + 多页设置）
 └── ui/                         # 通用 UI 基础组件
+    ├── ErrorBoundary.tsx       # 全局错误边界
     ├── primitives/             # Avatar, Badge, Button, IconButton, Panel
     └── styles/                 # 全局样式 + 设计 Token
 ```
@@ -84,29 +89,29 @@ Sbird-ui/src/
 ## 3. 分层架构
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  features/                        │  ← React 组件层
-│   workbench │ chat │ threads │ panel │ session   │
-└────────────────────────┬────────────────────────┘
-                         │ useWorkbenchRuntime()
-┌────────────────────────▼────────────────────────┐
-│                  runtime/                         │  ← 状态机层
-│   AppRuntime (状态容器 + 事件分发)                 │
-│   ├─ LiveSyncController   (SSE 实时同步)         │
-│   ├─ ThreadCatalogController (线程目录)          │
-│   ├─ TimelineController   (时间线读写)           │
-│   └─ TurnController       (消息轮次)            │
-└────────────────────────┬────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────┐
-│                  domain/                          │  ← 纯逻辑层
-│   timeline 归约 │ server-request 构建 │ input    │
-└────────────────────────┬────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────┐
-│                  api/                             │  ← 网络 IO 层
-│   ApiClient (fetch) │ EventStream (SSE)          │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    features/                              │  ← React 组件层
+│  workbench │ chat │ threads │ panel │ session │ settings  │
+└────────────────────────────┬────────────────────────────┘
+                             │ useWorkbenchRuntime()
+┌────────────────────────────▼────────────────────────────┐
+│                    runtime/                               │  ← 状态机层
+│   AppRuntime (状态容器 + 事件分发)                         │
+│   ├─ LiveSyncController   (SSE 实时同步)                 │
+│   ├─ ThreadCatalogController (线程目录)                  │
+│   ├─ TimelineController   (时间线读写)                   │
+│   └─ TurnController       (消息轮次)                    │
+└────────────────────────────┬────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────┐
+│                    domain/                                │  ← 纯逻辑层
+│   timeline 归约 │ thread │ server-request 构建 │ input   │
+└────────────────────────────┬────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────┐
+│                    api/                                   │  ← 网络 IO 层
+│   ApiClient (fetch) │ EventStream (SSE)                  │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -217,26 +222,45 @@ function useRuntimeStore(store): AppRuntimeState {
 
 ```
 main.tsx
-└── <WorkbenchRuntimePage />     ← features/workbench/
-    ├── useWorkbenchRuntime()     ← 唯一状态桥接 hook
-    └── <WorkbenchShell />        ← 三栏布局壳
-        ├── sidebar: <WorkbenchSidebar />
-        ├── chat:
-        │   ├── <ChatHeader />
-        │   ├── <ChatTimeline />
-        │   └── <ChatComposerPanel />
-        └── panel: <RightPanel />
+└── <BrowserRouter>
+    └── <React.Suspense>
+        └── <WorkbenchRuntimePage />         ← features/workbench/ (懒加载)
+            ├── useWorkbenchRuntime()         ← 唯一状态桥接 hook
+            ├── <WorkbenchShell />            ← 三栏布局壳
+            │   ├── sidebar: <WorkbenchSidebar />
+            │   ├── chat:
+            │   │   ├── <ChatHeader />
+            │   │   ├── <ChatTimeline />
+            │   │   │   ├── <ChatBubble />
+            │   │   │   └── <ThinkingCard />
+            │   │   │       └── <ToolCallCard />
+            │   │   └── <ChatComposerPanel />
+            │   │       ├── <MentionPopup />
+            │   │       └── <FilePreviewBar />
+            │   └── panel: <RightPanel />
+            │       ├── <ChartView />
+            │       └── <SummaryCard />
+            └── <SettingsPanel />              ← 全屏覆盖层设置面板
+                ├── <SettingsNav />
+                └── pages:
+                    ├── <GeneralPage />
+                    ├── <ModelPage />
+                    ├── <ConnectionPage />
+                    ├── <AppearancePage />
+                    ├── <ShortcutsPage />
+                    └── <AboutPage />
 ```
 
 ### 7.2 各 Feature 职责
 
-| Feature | 路径 | 组件 | 说明 |
-|---------|------|------|------|
-| **workbench** | `features/workbench/` | `WorkbenchRuntimePage` | 页面编排、运行时桥接 |
+| Feature | 路径 | 核心组件 | 说明 |
+|---------|------|----------|------|
+| **workbench** | `features/workbench/` | `WorkbenchRuntimePage` | 页面编排、运行时桥接、筛选/搜索逻辑 |
 | **session** | `features/session/` | `WorkbenchShell` | 纯布局壳（sidebar / chat / panel 三栏） |
-| **threads** | `features/threads/` | `WorkbenchSidebar`, `ThreadList`, `SubjectList` | 导航 + 运行列表 + 主题列表 |
-| **chat** | `features/chat/` | `ChatHeader`, `ChatTimeline`, `ChatBubble`, `ChatComposerPanel`, `ThinkingCard`, `ToolCallCard` | 聊天区域全部 UI |
+| **threads** | `features/threads/` | `WorkbenchSidebar`, `ThreadList`, `SubjectList`, `SidebarTooltip` | 导航 + 运行列表 + 主题列表 + 收缩轨道 |
+| **chat** | `features/chat/` | `ChatHeader`, `ChatTimeline`, `ChatBubble`, `ChatComposerPanel`, `ThinkingCard`, `ToolCallCard`, `MentionPopup`, `FilePreviewBar` | 聊天区域全部 UI |
 | **panel** | `features/panel/` | `RightPanel`, `ChartView`, `SummaryCard` | 右侧面板（图表/摘要/导出） |
+| **settings** | `features/settings/` | `SettingsPanel`, `SettingsNav`, 6 个页面组件, 4 个表单控件组件 | 全屏设置面板 |
 
 ### 7.3 投影层 (`model/`)
 
@@ -250,8 +274,9 @@ AppRuntimeState
     │   输出: groups[], selectedRunId, runIdToThreadId, runById
     │
     └─ projectTimelineMessages()        → WorkbenchTimelineMessage[] (聊天气泡)
-        输入: selectedRun + timelineByThreadId + fallbackTimeline
-        输出: 扁平化消息数组（含 thinking/toolCalls 展开）
+        └─ projectAgentGroupTimelineMessages()
+           输入: selectedRun + timelineByThreadId + fallbackTimeline
+           输出: 扁平化消息数组（含 thinking/toolCalls 展开）
 ```
 
 #### `RunListProjection`
@@ -291,17 +316,26 @@ type WorkbenchTimelineMessage = {
 
 | 组件 | 说明 |
 |------|------|
-| `Avatar` | 头像（支持颜色/文字） |
+| `Avatar` | 头像（支持颜色/文字/图片） |
 | `Badge` | 标签/徽章 |
 | `Button` | 通用按钮 |
 | `IconButton` | 图标按钮 |
 | `Panel` | 卡片面板容器 |
 
-### 8.2 样式体系
+### 8.2 设置面板组件 (`features/settings/ui/components/`)
+
+| 组件 | 说明 |
+|------|------|
+| `SettingSection` | 分区容器（标题 + 描述 + 子组件） |
+| `SettingRow` | 单行设置（水平 label + control，或垂直布局） |
+| `ToggleSwitch` | 开关控件（role="switch"） |
+| `SelectField` | 自定义下拉选择器（支持 description 二级说明文案） |
+
+### 8.3 样式体系
 
 - **SCSS Modules**：每个组件一个 `*.module.scss`，样式完全隔离
-- **Design Tokens**：`workbench.tokens.scss` 定义颜色/间距/圆角等变量
-- **全局样式**：`globals.scss` 仅 reset + 字体
+- **Design Tokens**：`workbench.tokens.scss` 定义颜色/间距/圆角等变量，前缀 `--sb-*`
+- **全局样式**：`globals.scss` 仅 reset + 字体 + 滚动条 mixin
 
 ---
 
@@ -338,9 +372,10 @@ type WorkbenchTimelineMessage = {
 | 自研 Runtime 而非 Redux | 需要精细控制 SSE 重连、同步状态机、乐观更新等复杂逻辑 |
 | 投影层与组件分离 | 投影函数纯粹可测试，组件保持薄壳 |
 | SCSS Modules 而非 CSS-in-JS | 构建性能好、无运行时开销、与 Vite 原生集成 |
-| 极简依赖（仅 react + lucide） | 减少包体积、降低升级风险 |
+| 极简依赖（仅 react + lucide + react-router-dom） | 减少包体积、降低升级风险 |
 | Headless 终端渲染层并存 | 同一 runtime 逻辑可驱动 Web UI 和 CLI TUI 两套界面 |
 | `displaySeq` 排序而非时间戳 | 保证事件顺序与 Engine 一致，避免时钟偏移 |
+| 设置面板采用左导航 + 右内容分页 | 可扩展，清晰分类，页面间切换有动画过渡 |
 
 ---
 
@@ -352,6 +387,13 @@ type WorkbenchTimelineMessage = {
 2. 组件通过 `useWorkbenchRuntime()` 获取所有状态
 3. 用投影函数将 `AppRuntimeState` 转化为视图模型
 4. 用 SCSS Module 编写样式
+
+### 添加新设置页面
+
+1. 在 `features/settings/ui/pages/` 创建 `XxxPage.tsx` + `XxxPage.module.scss`
+2. 在 `SettingsNav.tsx` 的 `NAV_ITEMS` 数组中添加条目
+3. 在 `SettingsPanel.tsx` 的 `PAGE_TITLES`、`PAGE_DESCRIPTIONS`、`PAGE_COMPONENTS` 中注册
+4. 复用已有的 `SettingSection`、`SettingRow`、`ToggleSwitch`、`SelectField` 组件
 
 ### 添加新 API 端点
 

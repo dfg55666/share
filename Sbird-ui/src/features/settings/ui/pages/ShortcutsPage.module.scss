@@ -1,0 +1,122 @@
+// ShortcutsPage styles
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  background: var(--sb-bg-gray);
+  border: 1px solid var(--sb-border-light);
+  border-radius: var(--sb-radius-md);
+  transition: border-color var(--sb-transition-fast);
+
+  &:focus-within {
+    border-color: var(--sb-primary);
+    box-shadow: 0 0 0 3px var(--sb-primary-alpha-08);
+  }
+}
+
+.searchIcon {
+  color: var(--sb-text-muted);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: var(--sb-font-family);
+  color: var(--sb-text-primary);
+  outline: none;
+
+  &::placeholder {
+    color: var(--sb-text-muted);
+  }
+}
+
+// ── Shortcut List ─────────────────────────────────────────────
+.shortcutList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.shortcutRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--sb-radius-sm);
+  transition: background-color var(--sb-transition-fast);
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.015);
+  }
+}
+
+.shortcutLabel {
+  font-size: 13px;
+  color: var(--sb-text-primary);
+  font-weight: 400;
+}
+
+.shortcutKeys {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.keyPlus {
+  font-size: 10px;
+  color: var(--sb-text-muted);
+  user-select: none;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-family: var(--sb-font-family);
+  font-weight: 500;
+  color: var(--sb-text-secondary);
+  background: var(--sb-bg-gray);
+  border: 1px solid var(--sb-border);
+  border-radius: 5px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  line-height: 1;
+  user-select: none;
+}
+
+// ── Empty State ──────────────────────────────────────────────
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.emptyText {
+  font-size: 13px;
+  color: var(--sb-text-muted);
+}
+
+// ── Footnote ─────────────────────────────────────────────────
+.footnote {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sb-border-light);
+
+  p {
+    font-size: 12px;
+    color: var(--sb-text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+}

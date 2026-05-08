@@ -25,7 +25,7 @@ const TEMPERATURE_PRESETS = [
   { value: '1.0', label: '高创意 (1.0)' },
 ];
 
-const GeneralPage: React.FC = () => {
+const ModelPage: React.FC = () => {
   const [model, setModel] = useState('claude-4-sonnet');
   const [effort, setEffort] = useState('medium');
   const [temperature, setTemperature] = useState('0.7');
@@ -86,4 +86,4 @@ const GeneralPage: React.FC = () => {
   );
 };
 
-export default GeneralPage;
+export default ModelPage;
