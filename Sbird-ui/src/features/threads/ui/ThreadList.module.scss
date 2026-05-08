@@ -1,21 +1,33 @@
+// ═══════════════════════════════════════════════════════════════════
+// ThreadList — refined group & thread item styling
+// ═══════════════════════════════════════════════════════════════════
+
 .threadList {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  padding: 0 var(--sb-space-2);
 }
 
+// ── Group ─────────────────────────────────────────────────────────
 .group {
   display: flex;
   flex-direction: column;
+  border-radius: var(--sb-radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.groupOpen {
+  // subtle background tint when expanded
+  background-color: rgba(0, 0, 0, 0.015);
 }
 
 .groupHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
   width: 100%;
-  padding: 6px 12px;
+  padding: 6px 8px;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -32,50 +44,69 @@
   }
 }
 
-.groupLabel {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--sb-text-primary);
-  flex: 1;
-  text-align: left;
-  line-height: 1.4;
-}
-
 .chevron {
   color: var(--sb-text-muted);
   flex-shrink: 0;
-  transition: transform var(--sb-transition-fast);
-  transform: rotate(-90deg);
-}
-
-.chevronOpen {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform: rotate(0deg);
 }
 
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.groupLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sb-text-secondary);
+  flex: 1;
+  text-align: left;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+.groupCount {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sb-text-muted);
+  background-color: var(--sb-border-light);
+  border-radius: var(--sb-radius-full);
+  padding: 1px 6px;
+  line-height: 1.5;
+  min-width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+// ── Thread Items ──────────────────────────────────────────────────
 .threadItems {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding-left: 16px;
-  padding-bottom: 4px;
+  padding: 2px 0 4px 0;
+  margin-left: 12px;
+  border-left: 1.5px solid var(--sb-border-light);
 }
 
 .threadItem {
   display: flex;
   align-items: center;
-  gap: var(--sb-space-2);
   width: 100%;
-  padding: 6px 12px;
+  padding: 5px 10px 5px 14px;
   background: transparent;
   border: none;
   cursor: pointer;
-  border-radius: var(--sb-radius-sm);
+  border-radius: 0 var(--sb-radius-sm) var(--sb-radius-sm) 0;
   font-size: 13px;
   font-family: var(--sb-font-family);
   color: var(--sb-text-secondary);
   text-align: left;
-  transition: background-color var(--sb-transition-fast), color var(--sb-transition-fast);
+  transition:
+    background-color var(--sb-transition-fast),
+    color var(--sb-transition-fast),
+    border-color var(--sb-transition-fast);
+  position: relative;
 
   &:hover {
     background-color: var(--sb-bg-gray);
@@ -90,23 +121,20 @@
   &.active {
     color: var(--sb-primary);
     font-weight: 500;
+    background-color: var(--sb-primary-alpha-08);
+
+    // Active indicator on the left border
+    &::before {
+      content: '';
+      position: absolute;
+      left: -2px;
+      top: 4px;
+      bottom: 4px;
+      width: 2px;
+      background-color: var(--sb-primary);
+      border-radius: 1px;
+    }
   }
-}
-
-.dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background-color: var(--sb-text-muted);
-  opacity: 0.5;
-  transition: background-color var(--sb-transition-fast);
-}
-
-.dotActive {
-  background-color: var(--sb-primary);
-  opacity: 1;
 }
 
 .threadTitle {

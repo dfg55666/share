@@ -1,0 +1,30 @@
+.apiKeyRow {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.apiKeyInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--sb-border);
+  border-radius: var(--sb-radius-md);
+  font-size: 13px;
+  font-family: var(--sb-font-mono);
+  color: var(--sb-text-primary);
+  background: var(--sb-bg-white);
+  transition:
+    border-color var(--sb-transition-fast),
+    box-shadow var(--sb-transition-fast);
+
+  &::placeholder {
+    color: var(--sb-text-muted);
+    font-family: var(--sb-font-mono);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--sb-primary);
+    box-shadow: 0 0 0 3px var(--sb-primary-alpha-08);
+  }
+}

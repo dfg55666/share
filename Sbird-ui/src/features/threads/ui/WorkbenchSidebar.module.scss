@@ -1,3 +1,7 @@
+// ═══════════════════════════════════════════════════════════════════
+// WorkbenchSidebar — dual-mode: expanded panel / collapsed icon rail
+// ═══════════════════════════════════════════════════════════════════
+
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -5,15 +9,119 @@
   height: 100%;
   background-color: transparent;
   flex-shrink: 0;
-  transition: width 0.2s ease;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+// ── Collapsed Rail ────────────────────────────────────────────────
 .sidebarCollapsed {
-  width: 60px;
+  width: 52px;
   align-items: center;
+  padding: var(--sb-space-3) 0;
 }
 
-// ── Logo Row ──────────────────────────────────────────────────────
+.railLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  margin-bottom: var(--sb-space-1);
+}
+
+.railNav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.railIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--sb-text-secondary);
+  border-radius: var(--sb-radius-md);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background-color: var(--sb-bg-gray);
+    color: var(--sb-text-primary);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-primary);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+.railIconActive {
+  background-color: var(--sb-primary-light) !important;
+  color: var(--sb-primary) !important;
+}
+
+.railDivider {
+  width: 24px;
+  height: 1px;
+  background-color: var(--sb-border-light);
+  margin: var(--sb-space-2) 0;
+  flex-shrink: 0;
+}
+
+.railSpacer {
+  flex: 1;
+}
+
+.railBottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.railUserBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-primary);
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
+}
+
+// ── Expanded — Logo Row ───────────────────────────────────────────
 .logoRow {
   display: flex;
   align-items: center;
@@ -46,7 +154,9 @@
   border: 1px solid var(--sb-border);
   border-radius: var(--sb-radius-md);
   background-color: var(--sb-bg-white);
-  transition: border-color var(--sb-transition-fast);
+  transition:
+    border-color var(--sb-transition-fast),
+    box-shadow var(--sb-transition-fast);
 
   &:focus-within {
     border-color: var(--sb-primary);
@@ -96,11 +206,21 @@
   gap: var(--sb-space-1);
   padding-bottom: var(--sb-space-3);
 
-  // Hidden scrollbar
-  scrollbar-width: none;
+  // Thin styled scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-border) transparent;
+
   &::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--sb-border);
+    border-radius: 4px;
   }
 }
 
@@ -130,12 +250,19 @@
   font-weight: 500;
   font-family: var(--sb-font-family);
   color: var(--sb-text-secondary);
-  transition: background-color var(--sb-transition-fast), color var(--sb-transition-fast);
+  transition:
+    background-color var(--sb-transition-fast),
+    color var(--sb-transition-fast);
   text-align: left;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--sb-bg-gray);
     color: var(--sb-text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
   }
 
   &:focus-visible {
@@ -171,14 +298,25 @@
   flex-shrink: 0;
 }
 
-// ── Section Title ─────────────────────────────────────────────────
+// ── Section Header (with icon) ────────────────────────────────────
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 4px;
+}
+
+.sectionIcon {
+  color: var(--sb-text-muted);
+  flex-shrink: 0;
+}
+
 .sectionTitle {
   font-size: 11px;
   font-weight: 600;
   color: var(--sb-text-muted);
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 4px 12px 6px;
 }
 
 // ── User Area ─────────────────────────────────────────────────────
@@ -187,7 +325,7 @@
   align-items: center;
   gap: var(--sb-space-2);
   padding: var(--sb-space-3);
-  border-top: 1px solid var(--sb-border);
+  border-top: 1px solid var(--sb-border-light);
   margin-top: auto;
   flex-shrink: 0;
 }

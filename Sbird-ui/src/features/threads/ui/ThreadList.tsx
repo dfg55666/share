@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import styles from './ThreadList.module.scss';
 
 export interface ThreadItem {
@@ -25,20 +25,22 @@ interface GroupPanelProps {
 
 const GroupPanel: React.FC<GroupPanelProps> = ({ group, onSelect }) => {
   const [open, setOpen] = useState(true);
+  const count = group.threads.length;
 
   return (
-    <div className={styles.group}>
+    <div className={`${styles.group} ${open ? styles.groupOpen : ''}`}>
       <button
         type="button"
         className={styles.groupHeader}
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
       >
-        <span className={styles.groupLabel}>{group.label}</span>
-        <ChevronDown
-          size={14}
+        <ChevronRight
+          size={12}
           className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
         />
+        <span className={styles.groupLabel}>{group.label}</span>
+        <span className={styles.groupCount}>{count}</span>
       </button>
 
       {open && (
@@ -51,7 +53,6 @@ const GroupPanel: React.FC<GroupPanelProps> = ({ group, onSelect }) => {
                 onClick={() => onSelect?.(thread.id)}
                 title={thread.title}
               >
-                <span className={`${styles.dot} ${thread.active ? styles.dotActive : ''}`} />
                 <span className={styles.threadTitle}>{thread.title}</span>
               </button>
             </li>

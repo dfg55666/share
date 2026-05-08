@@ -9,14 +9,16 @@ import {
   Search,
   Settings,
   Phone,
-  ChevronDown,
   Plus,
-  LucideProps,
+  MessageSquare,
+  Users,
+  type LucideProps,
 } from 'lucide-react';
 import Avatar from '../../../ui/primitives/Avatar';
 import IconButton from '../../../ui/primitives/IconButton';
 import ThreadList, { ThreadGroup } from './ThreadList';
 import SubjectList, { Subject } from './SubjectList';
+import SidebarTooltip from './SidebarTooltip';
 import styles from './WorkbenchSidebar.module.scss';
 
 // ------------------------------------------------------------------
@@ -70,8 +72,8 @@ export interface WorkbenchSidebarProps {
 // ------------------------------------------------------------------
 // Logo SVG
 // ------------------------------------------------------------------
-const SbirdLogo: React.FC = () => (
-  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+const SbirdLogo: React.FC<{ size?: number }> = ({ size = 28 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
     <path
       d="M8 4L16 8L24 4L28 12L24 20L16 28L8 20L4 12L8 4Z"
       fill="#7C5CFC"
@@ -120,93 +122,209 @@ const WorkbenchSidebar: React.FC<WorkbenchSidebarProps> = ({
     onSearch?.(e.target.value);
   };
 
+  // ── Collapsed Rail View ──
+  if (collapsed) {
+    return (
+      <aside className={`${styles.sidebar} ${styles.sidebarCollapsed}`}>
+        {/* Logo */}
+        <div className={styles.railLogo}>
+          <SbirdLogo size={24} />
+        </div>
+
+        {/* Expand button */}
+        <SidebarTooltip text="展开侧边栏">
+          <button
+            type="button"
+            className={styles.railIcon}
+            onClick={onCollapse}
+            disabled={collapseDisabled}
+            aria-label="展开侧边栏"
+          >
+            <ChevronsRight size={18} />
+          </button>
+        </SidebarTooltip>
+
+        <div className={styles.railDivider} />
+
+        {/* Nav icons */}
+        <nav className={styles.railNav} aria-label="主导航">
+          {navItems.map((item) => {
+            const IconComponent = ICON_MAP[item.icon];
+            if (!IconComponent) return null;
+            return (
+              <SidebarTooltip key={item.id} text={item.label}>
+                <button
+                  type="button"
+                  className={`${styles.railIcon} ${item.active ? styles.railIconActive : ''}`}
+                  onClick={() => onNavSelect?.(item.id)}
+                  aria-current={item.active ? 'page' : undefined}
+                  aria-label={item.label}
+                  disabled={item.disabled}
+                >
+                  <IconComponent size={18} />
+                </button>
+              </SidebarTooltip>
+            );
+          })}
+        </nav>
+
+        <div className={styles.railDivider} />
+
+        {/* Section shortcuts */}
+        <SidebarTooltip text="历史会话">
+          <button
+            type="button"
+            className={styles.railIcon}
+            aria-label="历史会话"
+          >
+            <MessageSquare size={18} />
+          </button>
+        </SidebarTooltip>
+
+        <SidebarTooltip text="命主列表">
+          <button
+            type="button"
+            className={styles.railIcon}
+            aria-label="命主列表"
+          >
+            <Users size={18} />
+          </button>
+        </SidebarTooltip>
+
+        {/* Spacer */}
+        <div className={styles.railSpacer} />
+
+        {/* Bottom utility icons */}
+        <div className={styles.railBottom}>
+          <SidebarTooltip text="设置" position="right">
+            <button
+              type="button"
+              className={styles.railIcon}
+              onClick={onSettingsClick}
+              disabled={settingsDisabled}
+              aria-label="设置"
+            >
+              <Settings size={18} />
+            </button>
+          </SidebarTooltip>
+
+          <SidebarTooltip text="联系我们" position="right">
+            <button
+              type="button"
+              className={styles.railIcon}
+              disabled={contactDisabled}
+              aria-label="联系我们"
+            >
+              <Phone size={18} />
+            </button>
+          </SidebarTooltip>
+
+          <div className={styles.railDivider} />
+
+          {/* User avatar */}
+          <SidebarTooltip text={user.name} position="right">
+            <button
+              type="button"
+              className={styles.railUserBtn}
+              aria-label={user.name}
+            >
+              <Avatar
+                src={user.avatarUrl}
+                fallback={user.name.charAt(0)}
+                size="sm"
+                color="purple"
+              />
+            </button>
+          </SidebarTooltip>
+        </div>
+      </aside>
+    );
+  }
+
+  // ── Expanded View ──
   return (
-    <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
+    <aside className={styles.sidebar}>
       {/* ── Top: Logo + Collapse ── */}
       <div className={styles.logoRow}>
         <div className={styles.logoMark}>
           <SbirdLogo />
-          {!collapsed && <span className={styles.logoText}>Sbird魔鸟</span>}
+          <span className={styles.logoText}>Sbird魔鸟</span>
         </div>
         <IconButton
-          icon={collapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
+          icon={<ChevronsLeft size={16} />}
           onClick={onCollapse}
-          title={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          title="收起侧边栏"
           size="sm"
           disabled={collapseDisabled}
         />
       </div>
 
-      {!collapsed && (
-        <>
-          {/* ── Search Box ── */}
-          <div className={styles.searchBox}>
-            <Search size={14} className={styles.searchIcon} />
-            <input
-              ref={searchRef}
-              type="text"
-              placeholder="搜索..."
-              className={styles.searchInput}
-              onChange={handleSearchChange}
-              aria-label="搜索"
-            />
-            <span className={styles.searchShortcut}>⌘K</span>
+      {/* ── Search Box ── */}
+      <div className={styles.searchBox}>
+        <Search size={14} className={styles.searchIcon} />
+        <input
+          ref={searchRef}
+          type="text"
+          placeholder="搜索..."
+          className={styles.searchInput}
+          onChange={handleSearchChange}
+          aria-label="搜索"
+        />
+        <span className={styles.searchShortcut}>⌘K</span>
+      </div>
+
+      {/* ── Scrollable inner content ── */}
+      <div className={styles.scrollArea}>
+        {/* ── Nav Items ── */}
+        <nav className={styles.nav} aria-label="主导航">
+          <ul className={styles.navList} role="list">
+            {navItems.map((item) => {
+              const IconComponent = ICON_MAP[item.icon];
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`${styles.navItem} ${item.active ? styles.navItemActive : ''}`}
+                    onClick={() => onNavSelect?.(item.id)}
+                    aria-current={item.active ? 'page' : undefined}
+                    disabled={item.disabled}
+                  >
+                    {IconComponent && (
+                      <IconComponent size={16} className={styles.navIcon} />
+                    )}
+                    <span className={styles.navLabel}>{item.label}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* ── Divider ── */}
+        <div className={styles.divider} />
+
+        {/* ── Thread History ── */}
+        <section aria-label="历史会话">
+          <div className={styles.sectionHeader}>
+            <MessageSquare size={14} className={styles.sectionIcon} />
+            <span className={styles.sectionTitle}>历史会话</span>
           </div>
+          <ThreadList groups={threadGroups} onSelect={onThreadSelect} />
+        </section>
 
-          {/* ── Scrollable inner content ── */}
-          <div className={styles.scrollArea}>
-            {/* ── Nav Items ── */}
-            <nav className={styles.nav} aria-label="主导航">
-              <ul className={styles.navList} role="list">
-                {navItems.map((item) => {
-                  const IconComponent = ICON_MAP[item.icon];
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        className={`${styles.navItem} ${item.active ? styles.navItemActive : ''}`}
-                        onClick={() => onNavSelect?.(item.id)}
-                        aria-current={item.active ? 'page' : undefined}
-                        disabled={item.disabled}
-                      >
-                        {IconComponent && (
-                          <IconComponent
-                            size={16}
-                            className={styles.navIcon}
-                          />
-                        )}
-                        <span className={styles.navLabel}>{item.label}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
+        {/* ── Divider ── */}
+        <div className={styles.divider} />
 
-            {/* ── Divider ── */}
-            <div className={styles.divider} />
-
-            {/* ── Thread History ── */}
-            <section aria-label="历史会话">
-              <div className={styles.sectionTitle}>历史会话</div>
-              <ThreadList groups={threadGroups} onSelect={onThreadSelect} />
-            </section>
-
-            {/* ── Divider ── */}
-            <div className={styles.divider} />
-
-            {/* ── Subject List ── */}
-            <section aria-label="命主列表">
-              <SubjectList
-                subjects={subjects}
-                onAdd={onSubjectAdd}
-                onSelect={onSubjectSelect}
-                addDisabled={subjectActionsDisabled}
-              />
-            </section>
-          </div>
-        </>
-      )}
+        {/* ── Subject List ── */}
+        <section aria-label="命主列表">
+          <SubjectList
+            subjects={subjects}
+            onAdd={onSubjectAdd}
+            onSelect={onSubjectSelect}
+            addDisabled={subjectActionsDisabled}
+          />
+        </section>
+      </div>
 
       {/* ── Bottom User Area ── */}
       <div className={styles.userArea}>
@@ -216,29 +334,25 @@ const WorkbenchSidebar: React.FC<WorkbenchSidebarProps> = ({
           size="md"
           color="purple"
         />
-        {!collapsed && (
-          <>
-            <div className={styles.userInfo}>
-              <span className={styles.userName}>{user.name}</span>
-              <span className={styles.userRole}>{user.role}</span>
-            </div>
-            <div className={styles.userActions}>
-              <IconButton
-                icon={<Settings size={14} />}
-                title="设置"
-                size="sm"
-                onClick={onSettingsClick}
-                disabled={settingsDisabled}
-              />
-              <IconButton
-                icon={<Phone size={14} />}
-                title="联系我们"
-                size="sm"
-                disabled={contactDisabled}
-              />
-            </div>
-          </>
-        )}
+        <div className={styles.userInfo}>
+          <span className={styles.userName}>{user.name}</span>
+          <span className={styles.userRole}>{user.role}</span>
+        </div>
+        <div className={styles.userActions}>
+          <IconButton
+            icon={<Settings size={14} />}
+            title="设置"
+            size="sm"
+            onClick={onSettingsClick}
+            disabled={settingsDisabled}
+          />
+          <IconButton
+            icon={<Phone size={14} />}
+            title="联系我们"
+            size="sm"
+            disabled={contactDisabled}
+          />
+        </div>
       </div>
     </aside>
   );

@@ -1,3 +1,7 @@
+// ═══════════════════════════════════════════════════════════════════
+// SubjectList — refined header with icon, better item spacing
+// ═══════════════════════════════════════════════════════════════════
+
 .subjectList {
   display: flex;
   flex-direction: column;
@@ -8,20 +12,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
+  padding: 6px 12px 4px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerIcon {
+  color: var(--sb-text-muted);
+  flex-shrink: 0;
 }
 
 .title {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--sb-text-primary);
+  color: var(--sb-text-muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   line-height: 1.4;
 }
 
 .addButton {
   color: var(--sb-primary) !important;
+  width: 24px !important;
+  height: 24px !important;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--sb-primary-light) !important;
     color: var(--sb-primary) !important;
   }
@@ -32,6 +51,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+  padding: 0 var(--sb-space-2);
 }
 
 .subjectItem {
@@ -39,14 +59,16 @@
   align-items: center;
   gap: var(--sb-space-2);
   width: 100%;
-  padding: 6px 12px;
+  padding: 6px 8px;
   background: transparent;
   border: none;
   cursor: pointer;
   border-radius: var(--sb-radius-sm);
   font-family: var(--sb-font-family);
   text-align: left;
-  transition: background-color var(--sb-transition-fast);
+  transition:
+    background-color var(--sb-transition-fast),
+    color var(--sb-transition-fast);
 
   &:hover {
     background-color: var(--sb-bg-gray);

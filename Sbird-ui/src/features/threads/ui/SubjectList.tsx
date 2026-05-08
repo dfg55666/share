@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import Avatar from '../../../ui/primitives/Avatar';
 import IconButton from '../../../ui/primitives/IconButton';
 import styles from './SubjectList.module.scss';
@@ -27,9 +27,12 @@ const SubjectList: React.FC<SubjectListProps> = ({
   return (
     <div className={styles.subjectList}>
       <div className={styles.header}>
-        <span className={styles.title}>命主列表</span>
+        <div className={styles.headerLeft}>
+          <Users size={14} className={styles.headerIcon} />
+          <span className={styles.title}>命主列表</span>
+        </div>
         <IconButton
-          icon={<Plus size={16} />}
+          icon={<Plus size={14} />}
           onClick={onAdd}
           title="添加命主"
           size="sm"
