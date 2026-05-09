@@ -1,27 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import useAppStore from './stores/appStore';
 import useDataStore from './stores/dataStore';
 
-import Sidebar       from './components/Sidebar';
-import StatusBar     from './components/StatusBar';
-import ProjectView   from './components/ProjectView';
-import TaskView      from './components/TaskView';
-import SessionView   from './components/SessionView';
-import AccountModal  from './components/AccountModal';
+import Sidebar         from './components/Sidebar';
+import StatusBar       from './components/StatusBar';
+import ProjectView     from './components/ProjectView';
+import TaskView        from './components/TaskView';
+import SessionView     from './components/SessionView';
+import AccountModal    from './components/AccountModal';
 import NewProjectModal from './components/NewProjectModal';
-import NewTaskModal  from './components/NewTaskModal';
-import Toast         from './components/Toast';
+import NewTaskModal    from './components/NewTaskModal';
+import Toast           from './components/Toast';
 
 // ─── Loading bar ──────────────────────────────────────────────────────────────
 function LoadingBar({ visible }) {
   return (
     <div
-      className="absolute top-0 left-0 right-0 h-[2px] bg-accent/20 overflow-hidden transition-opacity"
-      style={{ opacity: visible ? 1 : 0 }}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '2px',
+        background: 'rgba(0,212,170,0.15)',
+        overflow: 'hidden',
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.3s',
+      }}
     >
       <div
-        className="h-full bg-accent"
         style={{
+          height: '100%',
+          background: '#00d4aa',
           width: visible ? '100%' : '0%',
           transition: visible ? 'width 1.5s ease-out' : 'none',
         }}
@@ -30,43 +40,118 @@ function LoadingBar({ visible }) {
   );
 }
 
-// ─── Empty / Welcome panel ────────────────────────────────────────────────────
+// ─── Welcome panel ────────────────────────────────────────────────────────────
 function WelcomePanel() {
   const { setModal } = useAppStore();
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 select-none">
-      <div className="text-center">
-        <div className="font-mono text-[10px] text-[#333344] tracking-[0.3em] uppercase mb-3">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        gap: '24px',
+        userSelect: 'none',
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        <div
+          style={{
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: '10px',
+            color: '#333344',
+            letterSpacing: '0.3em',
+            textTransform: 'uppercase',
+            marginBottom: '12px',
+          }}
+        >
           nodeops manager
         </div>
-        <h2 className="font-mono text-[#444460] text-lg font-normal">
+        <h2
+          style={{
+            fontFamily: 'JetBrains Mono, monospace',
+            color: '#444460',
+            fontSize: '18px',
+            fontWeight: 400,
+            margin: 0,
+          }}
+        >
           Select a project, task, or session
         </h2>
-        <p className="font-mono text-[11px] text-[#333344] mt-2">
+        <p
+          style={{
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: '11px',
+            color: '#333344',
+            marginTop: '8px',
+          }}
+        >
           from the sidebar to get started
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
           onClick={() => setModal('newProject')}
-          className="flex items-center gap-2 px-4 py-2 border border-accent/30 bg-accent/5 text-accent font-mono text-[11px] hover:bg-accent/10 transition-colors"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            border: '1px solid rgba(0,212,170,0.3)',
+            background: 'rgba(0,212,170,0.05)',
+            color: '#00d4aa',
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: '11px',
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.05)')}
         >
           + New Project
         </button>
         <button
           onClick={() => setModal('account')}
-          className="flex items-center gap-2 px-4 py-2 border border-surface-4 text-[#666680] font-mono text-[11px] hover:bg-surface-2 hover:text-[#9999bb] transition-colors"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            border: '1px solid #2a2a3d',
+            background: 'transparent',
+            color: '#666680',
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: '11px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#1a1a25';
+            e.currentTarget.style.color = '#9999bb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#666680';
+          }}
         >
           Manage Accounts
         </button>
       </div>
 
       <div
-        className="font-mono text-[10px] text-[#222233] text-center"
-        style={{ maxWidth: '300px', lineHeight: '1.8' }}
+        style={{
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '10px',
+          color: '#222233',
+          textAlign: 'center',
+          maxWidth: '300px',
+          lineHeight: '1.8',
+          whiteSpace: 'pre-line',
+        }}
       >
-        {`// multi-account task orchestration\n// powered by nodeops agents`}
+        {'// multi-account task orchestration\n// powered by nodeops agents'}
       </div>
     </div>
   );
@@ -88,9 +173,16 @@ function ContentArea() {
   };
 
   return (
-    <div className="flex-1 relative overflow-hidden bg-surface-0">
+    <div
+      style={{
+        flex: 1,
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#0a0a0f',
+      }}
+    >
       <LoadingBar visible={loading} />
-      <div className="h-full overflow-y-auto">
+      <div style={{ height: '100%', overflowY: 'auto' }}>
         {renderPanel()}
       </div>
     </div>
@@ -100,33 +192,51 @@ function ContentArea() {
 // ─── App root ─────────────────────────────────────────────────────────────────
 export default function App() {
   const { modalOpen } = useAppStore();
-  const { fetchProjects, fetchAccounts, fetchOverview } = useDataStore();
+  const { fetchProjects, fetchAccounts, fetchOverview, fetchTasks, tasks } = useDataStore();
+  const pollerRef = useRef(null);
 
   // Initial data load
   useEffect(() => {
     fetchProjects();
     fetchAccounts();
     fetchOverview();
-  }, [fetchProjects, fetchAccounts, fetchOverview]);
+  }, []);
+
+  // Auto-refresh running tasks every 8 s
+  useEffect(() => {
+    const poll = () => {
+      const projectNames = Object.keys(tasks);
+      projectNames.forEach((pName) => {
+        const taskList = tasks[pName] || [];
+        const hasRunning = taskList.some((t) => t.status === 'running' || t.status === 'pending');
+        if (hasRunning) fetchTasks(pName);
+      });
+      fetchOverview();
+    };
+    pollerRef.current = setInterval(poll, 8000);
+    return () => clearInterval(pollerRef.current);
+  }, [tasks]);
 
   return (
     <div
-      className="flex flex-col font-sans text-[#ccccee]"
-      style={{ height: '100vh', background: '#0a0a0f' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: 'Inter, sans-serif',
+        color: '#ccccee',
+        height: '100vh',
+        background: '#0a0a0f',
+      }}
     >
-      {/* Toast container */}
       <Toast />
 
-      {/* Main layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <Sidebar />
         <ContentArea />
       </div>
 
-      {/* Status bar */}
       <StatusBar />
 
-      {/* Modals */}
       {modalOpen === 'account'    && <AccountModal />}
       {modalOpen === 'newProject' && <NewProjectModal />}
       {modalOpen === 'newTask'    && <NewTaskModal />}
@@ -135,7 +245,7 @@ export default function App() {
       <style>{`
         #createos-badge {
           position: fixed;
-          bottom: 12px;
+          bottom: 40px;
           right: 12px;
           z-index: 9999;
           display: flex;

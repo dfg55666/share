@@ -1,39 +1,169 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   GitBranch, Plus, ExternalLink, Layers, Clock,
   Play, CheckCircle, AlertCircle, Minus, Circle,
+  Trash2, RefreshCw,
 } from 'lucide-react';
 import useAppStore from '../stores/appStore';
 import useDataStore from '../stores/dataStore';
+import { showToast } from './Toast';
 
-function statusColor(status) {
+function statusStyle(status) {
   switch (status) {
-    case 'running':   return 'text-accent border-accent/30 bg-accent/10';
-    case 'pending':   return 'text-[#f59e0b] border-[#f59e0b]/30 bg-[#f59e0b]/10';
+    case 'running':
+    case 'monitoring':
+      return { color: '#00d4aa', borderColor: 'rgba(0,212,170,0.3)', bg: 'rgba(0,212,170,0.08)' };
+    case 'pending':
+    case 'switching':
+    case 'syncing':
+    case 'pushing':
+      return { color: '#f59e0b', borderColor: 'rgba(245,158,11,0.3)', bg: 'rgba(245,158,11,0.08)' };
     case 'failed':
-    case 'blocked':   return 'text-warn border-warn/30 bg-warn/10';
-    case 'completed': return 'text-[#6b7280] border-[#6b7280]/30 bg-[#6b7280]/10';
-    case 'canceled':  return 'text-[#444460] border-[#444460]/30 bg-[#444460]/10';
-    default:          return 'text-[#555570] border-[#555570]/20 bg-transparent';
+    case 'blocked':
+    case 'blocked_no_account':
+      return { color: '#ff6b4a', borderColor: 'rgba(255,107,74,0.3)', bg: 'rgba(255,107,74,0.08)' };
+    case 'completed':
+    case 'stopped':
+      return { color: '#6b7280', borderColor: 'rgba(107,114,128,0.3)', bg: 'rgba(107,114,128,0.08)' };
+    case 'canceled':
+      return { color: '#444460', borderColor: 'rgba(68,68,96,0.3)', bg: 'rgba(68,68,96,0.08)' };
+    default:
+      return { color: '#555570', borderColor: '#2a2a3d', bg: 'transparent' };
   }
 }
 
 function StatusIcon({ status }) {
-  const cls = 'flex-shrink-0';
+  const sz = 11;
   switch (status) {
-    case 'running':   return <Play          size={11} className={`${cls} text-accent`} />;
-    case 'pending':   return <Clock         size={11} className={`${cls} text-[#f59e0b]`} />;
+    case 'running':
+    case 'monitoring':
+      return <Play size={sz} style={{ color: '#00d4aa', flexShrink: 0 }} />;
+    case 'pending':
+    case 'switching':
+    case 'syncing':
+    case 'pushing':
+      return <Clock size={sz} style={{ color: '#f59e0b', flexShrink: 0 }} />;
     case 'failed':
-    case 'blocked':   return <AlertCircle  size={11} className={`${cls} text-warn`} />;
-    case 'completed': return <CheckCircle  size={11} className={`${cls} text-[#6b7280]`} />;
-    case 'canceled':  return <Minus        size={11} className={`${cls} text-[#444460]`} />;
-    default:          return <Circle       size={11} className={`${cls} text-[#444460]`} />;
+    case 'blocked':
+    case 'blocked_no_account':
+      return <AlertCircle size={sz} style={{ color: '#ff6b4a', flexShrink: 0 }} />;
+    case 'completed':
+    case 'stopped':
+      return <CheckCircle size={sz} style={{ color: '#6b7280', flexShrink: 0 }} />;
+    case 'canceled':
+      return <Minus size={sz} style={{ color: '#444460', flexShrink: 0 }} />;
+    default:
+      return <Circle size={sz} style={{ color: '#444460', flexShrink: 0 }} />;
   }
+}
+
+function TaskRow({ task, projectName }) {
+  const { setSelectedNode } = useAppStore();
+  const [hover, setHover] = useState(false);
+
+  const taskId    = task.id || task.task_id || task.taskId;
+  const status    = task.status || 'idle';
+  const mode      = task.mode || '—';
+  const loops     = task.current_loop ?? task.loop_count ?? 0;
+  const maxL      = task.max_loops ?? '∞';
+  const st        = statusStyle(status);
+  const isActive  = ['running', 'monitoring', 'pending', 'switching', 'syncing', 'pushing'].includes(status);
+
+  return (
+    <button
+      onClick={() => setSelectedNode({ type: 'task', project: projectName, taskId })}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '10px 12px',
+        textAlign: 'left',
+        background: hover ? '#1a1a25' : '#12121a',
+        border: `1px solid ${hover ? '#2a2a3d' : 'transparent'}`,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+      }}
+    >
+      <StatusIcon status={status} />
+
+      <span style={{
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 12,
+        color: hover ? '#ccccee' : '#aaaacc',
+        flex: 1,
+        minWidth: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        transition: 'color 0.15s',
+      }}>
+        {taskId}
+      </span>
+
+      {isActive && (
+        <span style={{
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          background: '#00d4aa',
+          boxShadow: '0 0 5px rgba(0,212,170,0.6)',
+          animation: 'pulseDot 2s ease-in-out infinite',
+          flexShrink: 0,
+        }} />
+      )}
+
+      <span style={{
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 10,
+        padding: '1px 6px',
+        border: `1px solid ${st.borderColor}`,
+        background: st.bg,
+        color: st.color,
+        flexShrink: 0,
+      }}>
+        {status}
+      </span>
+
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#444460', flexShrink: 0 }}>
+        {mode}
+      </span>
+
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#444460', flexShrink: 0 }}>
+        {loops}/{maxL}
+      </span>
+
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: hover ? '#555570' : '#333344', flexShrink: 0, transition: 'color 0.15s' }}>
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+  );
+}
+
+function Stat({ label, value, color }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+      <span style={{
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 18,
+        fontWeight: 700,
+        color: color || '#ccccee',
+      }}>
+        {value}
+      </span>
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#444460' }}>
+        {label}
+      </span>
+    </div>
+  );
 }
 
 export default function ProjectView() {
   const { selectedNode, setModal } = useAppStore();
-  const { projects, tasks, fetchTasks } = useDataStore();
+  const { projects, tasks, fetchTasks, removeProject } = useDataStore();
+  const [deleting, setDeleting] = useState(false);
 
   const projectName = selectedNode?.project;
   const project = projects.find((p) => (p.name || p) === projectName) || { name: projectName };
@@ -41,23 +171,60 @@ export default function ProjectView() {
 
   useEffect(() => {
     if (projectName) fetchTasks(projectName);
-  }, [projectName, fetchTasks]);
+  }, [projectName]);
 
-  const runningCount  = taskList.filter((t) => t.status === 'running').length;
-  const pendingCount  = taskList.filter((t) => t.status === 'pending').length;
-  const failedCount   = taskList.filter((t) => t.status === 'failed' || t.status === 'blocked').length;
+  const runningCount  = taskList.filter((t) => ['running', 'monitoring'].includes(t.status)).length;
+  const pendingCount  = taskList.filter((t) => ['pending', 'switching', 'syncing', 'pushing'].includes(t.status)).length;
+  const failedCount   = taskList.filter((t) => ['failed', 'blocked', 'blocked_no_account'].includes(t.status)).length;
+  const completedCount = taskList.filter((t) => ['completed', 'stopped'].includes(t.status)).length;
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete project "${projectName}" and all its tasks?`)) return;
+    try {
+      setDeleting(true);
+      await removeProject(projectName);
+      showToast(`Project "${projectName}" deleted`, 'success');
+    } catch (e) {
+      showToast(`Delete failed: ${e.message}`, 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
-    <div className="flex flex-col h-full font-sans">
-      {/* Project header */}
-      <div className="px-6 pt-5 pb-4 border-b border-surface-3 flex-shrink-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex-shrink-0 w-8 h-8 bg-surface-3 flex items-center justify-center">
-              <Layers size={15} className="text-accent" />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: 'Inter, sans-serif' }}>
+      {/* Header */}
+      <div style={{
+        padding: '20px 24px 16px',
+        borderBottom: '1px solid #222233',
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          {/* Left: icon + name */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <div style={{
+              flexShrink: 0,
+              width: 32,
+              height: 32,
+              background: '#1a1a25',
+              border: '1px solid #222233',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Layers size={15} style={{ color: '#00d4aa' }} />
             </div>
-            <div className="min-w-0">
-              <h1 className="font-mono font-bold text-base text-[#ddddee] tracking-tight truncate">
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{
+                fontFamily: 'JetBrains Mono, monospace',
+                fontWeight: 700,
+                fontSize: 15,
+                color: '#ddddee',
+                margin: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
                 {project.name}
               </h1>
               {project.github_url && (
@@ -65,59 +232,149 @@ export default function ProjectView() {
                   href={project.github_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 mt-0.5 font-mono text-[11px] text-info/70 hover:text-info transition-colors"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    marginTop: 2,
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: 11,
+                    color: 'rgba(74,158,255,0.7)',
+                    textDecoration: 'none',
+                    transition: 'color 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = '#4a9eff')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(74,158,255,0.7)')}
                 >
                   <GitBranch size={10} />
-                  <span className="truncate">{project.github_url}</span>
-                  <ExternalLink size={9} className="flex-shrink-0" />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
+                    {project.github_url}
+                  </span>
+                  <ExternalLink size={9} style={{ flexShrink: 0 }} />
                 </a>
               )}
             </div>
           </div>
 
-          <button
-            onClick={() => setModal('newTask')}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent hover:bg-accent/20 transition-colors font-mono text-[11px]"
-          >
-            <Plus size={11} />
-            New Task
-          </button>
+          {/* Right: actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <button
+              onClick={() => setModal('newTask')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                background: 'rgba(0,212,170,0.08)',
+                border: '1px solid rgba(0,212,170,0.3)',
+                color: '#00d4aa',
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: 11,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.15)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.08)')}
+            >
+              <Plus size={11} />
+              New Task
+            </button>
+            <button
+              onClick={() => fetchTasks(projectName)}
+              title="Refresh tasks"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                background: 'none',
+                border: '1px solid #2a2a3d',
+                color: '#444460',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#9999bb'; e.currentTarget.style.borderColor = '#444460'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#444460'; e.currentTarget.style.borderColor = '#2a2a3d'; }}
+            >
+              <RefreshCw size={12} />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              title="Delete project"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                background: 'none',
+                border: '1px solid #2a2a3d',
+                color: '#444460',
+                cursor: deleting ? 'not-allowed' : 'pointer',
+                opacity: deleting ? 0.5 : 1,
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#ff6b4a'; e.currentTarget.style.borderColor = 'rgba(255,107,74,0.3)'; e.currentTarget.style.background = 'rgba(255,107,74,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#444460'; e.currentTarget.style.borderColor = '#2a2a3d'; e.currentTarget.style.background = 'none'; }}
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         </div>
 
         {project.description && (
-          <p className="mt-3 text-[12px] text-[#666680] leading-relaxed max-w-2xl">
+          <p style={{
+            marginTop: 12,
+            fontSize: 13,
+            color: '#666680',
+            lineHeight: 1.6,
+            maxWidth: 600,
+          }}>
             {project.description}
           </p>
         )}
 
-        {/* Stats row */}
-        <div className="flex items-center gap-4 mt-3">
-          <Stat label="tasks"   value={taskList.length}  />
-          {runningCount > 0 && <Stat label="running"  value={runningCount}  accent />}
-          {pendingCount > 0 && <Stat label="pending"  value={pendingCount}  warn />}
-          {failedCount  > 0 && <Stat label="failed"   value={failedCount}   danger />}
+        {/* Stats */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 14 }}>
+          <Stat label="tasks" value={taskList.length} />
+          {runningCount > 0  && <Stat label="running"   value={runningCount}   color="#00d4aa" />}
+          {pendingCount > 0  && <Stat label="pending"   value={pendingCount}   color="#f59e0b" />}
+          {failedCount > 0   && <Stat label="failed"    value={failedCount}    color="#ff6b4a" />}
+          {completedCount > 0 && <Stat label="completed" value={completedCount} color="#6b7280" />}
         </div>
       </div>
 
       {/* Task list */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
         {taskList.length === 0 ? (
-          <Empty>
-            No tasks yet.{' '}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, gap: 12 }}>
+            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#333344', fontStyle: 'italic', margin: 0 }}>
+              No tasks yet.
+            </p>
             <button
               onClick={() => setModal('newTask')}
-              className="text-accent hover:underline"
+              style={{
+                padding: '6px 16px',
+                background: 'rgba(0,212,170,0.08)',
+                border: '1px solid rgba(0,212,170,0.3)',
+                color: '#00d4aa',
+                fontFamily: 'JetBrains Mono, monospace',
+                fontSize: 11,
+                cursor: 'pointer',
+              }}
             >
-              Create one
+              Create first task
             </button>
-          </Empty>
+          </div>
         ) : (
-          <div className="flex flex-col gap-px">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono text-[11px] text-[#444460] uppercase tracking-widest">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#444460', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 tasks
               </span>
-              <div className="flex-1 h-px bg-surface-3" />
+              <div style={{ flex: 1, height: 1, background: '#222233' }} />
             </div>
             {taskList.map((task, i) => (
               <TaskRow key={task.id || task.task_id || i} task={task} projectName={projectName} />
@@ -125,68 +382,10 @@ export default function ProjectView() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
 
-function TaskRow({ task, projectName }) {
-  const { setSelectedNode } = useAppStore();
-  const taskId = task.id || task.task_id || task.taskId;
-  const status = task.status || 'idle';
-  const mode   = task.mode || '—';
-  const loops  = task.current_loop ?? task.loop_count ?? 0;
-  const maxL   = task.max_loops ?? '∞';
-
-  return (
-    <button
-      onClick={() => setSelectedNode({ type: 'task', project: projectName, taskId })}
-      className="w-full flex items-center gap-3 px-3 py-2.5 text-left bg-surface-2 hover:bg-surface-3 border border-transparent hover:border-surface-4 transition-all group"
-    >
-      <StatusIcon status={status} />
-
-      <span className="font-mono text-[12px] text-[#aaaacc] group-hover:text-[#ccccee] transition-colors flex-1 min-w-0 truncate">
-        {taskId}
-      </span>
-
-      <span className={`font-mono text-[10px] px-1.5 py-0.5 border ${statusColor(status)}`}>
-        {status}
-      </span>
-
-      <span className="font-mono text-[10px] text-[#444460]">
-        {mode}
-      </span>
-
-      <span className="font-mono text-[10px] text-[#444460]">
-        {loops}/{maxL}
-      </span>
-
-      <ChevronRight />
-    </button>
-  );
-}
-
-function ChevronRight() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#333344] group-hover:text-[#555570] flex-shrink-0">
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-  );
-}
-
-function Stat({ label, value, accent, warn, danger }) {
-  const cls = accent ? 'text-accent' : warn ? 'text-[#f59e0b]' : danger ? 'text-warn' : 'text-[#ccccee]';
-  return (
-    <div className="flex items-baseline gap-1">
-      <span className={`font-mono text-sm font-semibold ${cls}`}>{value}</span>
-      <span className="font-mono text-[10px] text-[#444460]">{label}</span>
-    </div>
-  );
-}
-
-function Empty({ children }) {
-  return (
-    <div className="flex items-center justify-center h-40">
-      <p className="font-mono text-[12px] text-[#333344] italic">{children}</p>
+      <style>{`
+        @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      `}</style>
     </div>
   );
 }

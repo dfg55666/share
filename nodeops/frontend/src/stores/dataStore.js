@@ -12,11 +12,12 @@ const useDataStore = create((set, get) => ({
   // ─── Fetch helpers ──────────────────────────────────────────────────────────
   fetchProjects: async () => {
     try {
+      set({ loading: true });
       const res = await api.getProjects();
       const projects = res.data ?? res ?? [];
-      set({ projects: Array.isArray(projects) ? projects : [] });
+      set({ projects: Array.isArray(projects) ? projects : [], loading: false });
     } catch (e) {
-      set({ error: e.message });
+      set({ error: e.message, loading: false });
     }
   },
 
@@ -48,19 +49,17 @@ const useDataStore = create((set, get) => ({
   fetchAllTasks: async () => {
     try {
       const res = await api.getAllTasks();
-      const tasks = res.data ?? res ?? {};
-      // Backend may return { projectName: [...tasks] } or flat array
-      if (Array.isArray(tasks)) {
-        // group by project
+      const raw = res.data ?? res ?? {};
+      if (Array.isArray(raw)) {
         const grouped = {};
-        tasks.forEach((t) => {
+        raw.forEach((t) => {
           const p = t.project || 'unknown';
-          grouped[p] = grouped[p] || [];
+          if (!grouped[p]) grouped[p] = [];
           grouped[p].push(t);
         });
         set({ tasks: grouped });
       } else {
-        set({ tasks });
+        set({ tasks: raw });
       }
     } catch (e) {
       set({ error: e.message });
@@ -72,7 +71,6 @@ const useDataStore = create((set, get) => ({
       const res = await api.getOverview();
       set({ overview: res.data ?? res ?? {} });
     } catch (e) {
-      // overview failing is non-fatal
       console.warn('Overview fetch failed:', e.message);
     }
   },
@@ -144,7 +142,9 @@ const useDataStore = create((set, get) => ({
     set((state) => ({
       tasks: {
         ...state.tasks,
-        [project]: (state.tasks[project] || []).filter((t) => t.id !== taskId && t.task_id !== taskId),
+        [project]: (state.tasks[project] || []).filter(
+          (t) => t.id !== taskId && t.task_id !== taskId
+        ),
       },
     }));
   },
