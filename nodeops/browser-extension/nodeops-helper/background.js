@@ -16,6 +16,9 @@ const SEED_ORIGINS = [
 const LOGIN_URL = "https://createos.nodeops.network/";
 const LOGIN_EMAIL_PREFIX = "feijidfg55";
 const OTP_BRIDGE_URL = "http://127.0.0.1:17897/otp/latest";
+const OTP_BRIDGE_APP_PASSWORD = "maqk srdy ucjq bsby";
+const OTP_WAIT_TIMEOUT_MS = 5 * 60 * 1000; // bridge long-poll max wait
+const OTP_BRIDGE_BUFFER_MS = 15 * 1000;
 
 let lastLoginEmail = null;
 
@@ -246,7 +249,7 @@ async function navigateAndLogin() {
 async function fetchLatestCodeFromBridge() {
   const loginEmail = await getLastLoginEmail();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), OTP_WAIT_TIMEOUT_MS + OTP_BRIDGE_BUFFER_MS);
   try {
     const resp = await fetch(OTP_BRIDGE_URL, {
       method: "POST",
@@ -255,16 +258,27 @@ async function fetchLatestCodeFromBridge() {
       },
       body: JSON.stringify({
         to_email_contains: loginEmail || undefined,
-        delete_best: true
+        app_password: OTP_BRIDGE_APP_PASSWORD,
+        delete_best: true,
+        wait_timeout_s: Math.floor(OTP_WAIT_TIMEOUT_MS / 1000),
+        poll_interval_s: 5,
+        command_timeout_s: 90
       }),
       signal: controller.signal
     });
-    if (!resp.ok) {
-      return { ok: false, error: `Bridge HTTP ${resp.status}` };
+    let data = null;
+    try {
+      data = await resp.json();
+    } catch {
+      data = null;
     }
-    const data = await resp.json();
+    if (!resp.ok) {
+      const bridgeErr = data?.error || `Bridge HTTP ${resp.status}`;
+      return { ok: false, error: bridgeErr };
+    }
     if (!data?.ok || !data?.code) {
-      return { ok: false, error: data?.error || "Bridge returned no code" };
+      const msg = data?.error || "Bridge returned no code";
+      return { ok: false, error: msg, bridge: data || undefined };
     }
     return {
       ok: true,
@@ -275,6 +289,9 @@ async function fetchLatestCodeFromBridge() {
       deleted: Boolean(data.deleted)
     };
   } catch (error) {
+    if (error?.name === "AbortError") {
+      return { ok: false, error: `OTP wait timeout (${Math.floor(OTP_WAIT_TIMEOUT_MS / 1000)}s)` };
+    }
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
     clearTimeout(timeout);

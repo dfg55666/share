@@ -12,7 +12,7 @@ function statusStyle(status) {
   switch (status) {
     case 'running':
     case 'monitoring':
-      return { color: '#00d4aa', borderColor: 'rgba(0,212,170,0.3)', bg: 'rgba(0,212,170,0.08)' };
+      return { color: '#00a888', borderColor: 'rgba(0,168,136,0.3)', bg: 'rgba(0,168,136,0.08)' };
     case 'pending':
     case 'switching':
     case 'syncing':
@@ -26,9 +26,9 @@ function statusStyle(status) {
     case 'stopped':
       return { color: '#6b7280', borderColor: 'rgba(107,114,128,0.3)', bg: 'rgba(107,114,128,0.08)' };
     case 'canceled':
-      return { color: '#444460', borderColor: 'rgba(68,68,96,0.3)', bg: 'rgba(68,68,96,0.08)' };
+      return { color: '#64748b', borderColor: 'rgba(68,68,96,0.3)', bg: 'rgba(68,68,96,0.08)' };
     default:
-      return { color: '#555570', borderColor: '#2a2a3d', bg: 'transparent' };
+      return { color: '#6b7280', borderColor: '#cbd5e1', bg: 'transparent' };
   }
 }
 
@@ -37,7 +37,7 @@ function StatusIcon({ status }) {
   switch (status) {
     case 'running':
     case 'monitoring':
-      return <Play size={sz} style={{ color: '#00d4aa', flexShrink: 0 }} />;
+      return <Play size={sz} style={{ color: '#00a888', flexShrink: 0 }} />;
     case 'pending':
     case 'switching':
     case 'syncing':
@@ -51,9 +51,9 @@ function StatusIcon({ status }) {
     case 'stopped':
       return <CheckCircle size={sz} style={{ color: '#6b7280', flexShrink: 0 }} />;
     case 'canceled':
-      return <Minus size={sz} style={{ color: '#444460', flexShrink: 0 }} />;
+      return <Minus size={sz} style={{ color: '#64748b', flexShrink: 0 }} />;
     default:
-      return <Circle size={sz} style={{ color: '#444460', flexShrink: 0 }} />;
+      return <Circle size={sz} style={{ color: '#64748b', flexShrink: 0 }} />;
   }
 }
 
@@ -81,8 +81,8 @@ function TaskRow({ task, projectName }) {
         gap: 10,
         padding: '10px 12px',
         textAlign: 'left',
-        background: hover ? '#1a1a25' : '#12121a',
-        border: `1px solid ${hover ? '#2a2a3d' : 'transparent'}`,
+        background: hover ? '#f1f5f9' : '#ffffff',
+        border: `1px solid ${hover ? '#cbd5e1' : 'transparent'}`,
         cursor: 'pointer',
         transition: 'all 0.15s',
       }}
@@ -92,7 +92,7 @@ function TaskRow({ task, projectName }) {
       <span style={{
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 12,
-        color: hover ? '#ccccee' : '#aaaacc',
+        color: hover ? '#0f172a' : '#1e293b',
         flex: 1,
         minWidth: 0,
         overflow: 'hidden',
@@ -108,8 +108,8 @@ function TaskRow({ task, projectName }) {
           width: 6,
           height: 6,
           borderRadius: '50%',
-          background: '#00d4aa',
-          boxShadow: '0 0 5px rgba(0,212,170,0.6)',
+          background: '#00a888',
+          boxShadow: '0 0 5px rgba(0,168,136,0.6)',
           animation: 'pulseDot 2s ease-in-out infinite',
           flexShrink: 0,
         }} />
@@ -127,15 +127,15 @@ function TaskRow({ task, projectName }) {
         {status}
       </span>
 
-      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#444460', flexShrink: 0 }}>
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#64748b', flexShrink: 0 }}>
         {mode}
       </span>
 
-      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#444460', flexShrink: 0 }}>
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#64748b', flexShrink: 0 }}>
         {loops}/{maxL}
       </span>
 
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: hover ? '#555570' : '#333344', flexShrink: 0, transition: 'color 0.15s' }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: hover ? '#6b7280' : '#94a3b8', flexShrink: 0, transition: 'color 0.15s' }}>
         <polyline points="9 18 15 12 9 6" />
       </svg>
     </button>
@@ -149,11 +149,11 @@ function Stat({ label, value, color }) {
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 18,
         fontWeight: 700,
-        color: color || '#ccccee',
+        color: color || '#0f172a',
       }}>
         {value}
       </span>
-      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#444460' }}>
+      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#64748b' }}>
         {label}
       </span>
     </div>
@@ -196,7 +196,7 @@ export default function ProjectView() {
       {/* Header */}
       <div style={{
         padding: '20px 24px 16px',
-        borderBottom: '1px solid #222233',
+        borderBottom: '1px solid #e2e8f0',
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
@@ -206,20 +206,20 @@ export default function ProjectView() {
               flexShrink: 0,
               width: 32,
               height: 32,
-              background: '#1a1a25',
-              border: '1px solid #222233',
+              background: '#f1f5f9',
+              border: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Layers size={15} style={{ color: '#00d4aa' }} />
+              <Layers size={15} style={{ color: '#00a888' }} />
             </div>
             <div style={{ minWidth: 0 }}>
               <h1 style={{
                 fontFamily: 'JetBrains Mono, monospace',
                 fontWeight: 700,
                 fontSize: 15,
-                color: '#ddddee',
+                color: '#0f172a',
                 margin: 0,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -265,16 +265,16 @@ export default function ProjectView() {
                 alignItems: 'center',
                 gap: 6,
                 padding: '6px 12px',
-                background: 'rgba(0,212,170,0.08)',
-                border: '1px solid rgba(0,212,170,0.3)',
-                color: '#00d4aa',
+                background: 'rgba(0,168,136,0.08)',
+                border: '1px solid rgba(0,168,136,0.3)',
+                color: '#00a888',
                 fontFamily: 'JetBrains Mono, monospace',
                 fontSize: 11,
                 cursor: 'pointer',
                 transition: 'background 0.15s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.15)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.08)')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,168,136,0.15)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,168,136,0.08)')}
             >
               <Plus size={11} />
               New Task
@@ -289,13 +289,13 @@ export default function ProjectView() {
                 width: 28,
                 height: 28,
                 background: 'none',
-                border: '1px solid #2a2a3d',
-                color: '#444460',
+                border: '1px solid #cbd5e1',
+                color: '#64748b',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#9999bb'; e.currentTarget.style.borderColor = '#444460'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#444460'; e.currentTarget.style.borderColor = '#2a2a3d'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#334155'; e.currentTarget.style.borderColor = '#64748b'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
             >
               <RefreshCw size={12} />
             </button>
@@ -310,14 +310,14 @@ export default function ProjectView() {
                 width: 28,
                 height: 28,
                 background: 'none',
-                border: '1px solid #2a2a3d',
-                color: '#444460',
+                border: '1px solid #cbd5e1',
+                color: '#64748b',
                 cursor: deleting ? 'not-allowed' : 'pointer',
                 opacity: deleting ? 0.5 : 1,
                 transition: 'all 0.15s',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.color = '#ff6b4a'; e.currentTarget.style.borderColor = 'rgba(255,107,74,0.3)'; e.currentTarget.style.background = 'rgba(255,107,74,0.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = '#444460'; e.currentTarget.style.borderColor = '#2a2a3d'; e.currentTarget.style.background = 'none'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = 'none'; }}
             >
               <Trash2 size={12} />
             </button>
@@ -328,7 +328,7 @@ export default function ProjectView() {
           <p style={{
             marginTop: 12,
             fontSize: 13,
-            color: '#666680',
+            color: '#4b5563',
             lineHeight: 1.6,
             maxWidth: 600,
           }}>
@@ -339,7 +339,7 @@ export default function ProjectView() {
         {/* Stats */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 14 }}>
           <Stat label="tasks" value={taskList.length} />
-          {runningCount > 0  && <Stat label="running"   value={runningCount}   color="#00d4aa" />}
+          {runningCount > 0  && <Stat label="running"   value={runningCount}   color="#00a888" />}
           {pendingCount > 0  && <Stat label="pending"   value={pendingCount}   color="#f59e0b" />}
           {failedCount > 0   && <Stat label="failed"    value={failedCount}    color="#ff6b4a" />}
           {completedCount > 0 && <Stat label="completed" value={completedCount} color="#6b7280" />}
@@ -350,16 +350,16 @@ export default function ProjectView() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
         {taskList.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, gap: 12 }}>
-            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#333344', fontStyle: 'italic', margin: 0 }}>
+            <p style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: '#94a3b8', fontStyle: 'italic', margin: 0 }}>
               No tasks yet.
             </p>
             <button
               onClick={() => setModal('newTask')}
               style={{
                 padding: '6px 16px',
-                background: 'rgba(0,212,170,0.08)',
-                border: '1px solid rgba(0,212,170,0.3)',
-                color: '#00d4aa',
+                background: 'rgba(0,168,136,0.08)',
+                border: '1px solid rgba(0,168,136,0.3)',
+                color: '#00a888',
                 fontFamily: 'JetBrains Mono, monospace',
                 fontSize: 11,
                 cursor: 'pointer',
@@ -371,10 +371,10 @@ export default function ProjectView() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#444460', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 tasks
               </span>
-              <div style={{ flex: 1, height: 1, background: '#222233' }} />
+              <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
             </div>
             {taskList.map((task, i) => (
               <TaskRow key={task.id || task.task_id || i} task={task} projectName={projectName} />

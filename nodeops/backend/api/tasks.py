@@ -92,6 +92,15 @@ async def cancel_task(project_name: str, task_id: str):
     return {"success": True, "data": {"status": "canceled"}}
 
 
+@router.post("/{project_name}/{task_id}/sessions/empty")
+async def create_empty_session(project_name: str, task_id: str):
+    try:
+        data = await task_engine.create_empty_session(project_name, task_id)
+        return {"success": True, "data": data}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.get("/{project_name}/{task_id}/messages")
 def get_task_messages(project_name: str, task_id: str):
     """Get cached messages for an active task."""

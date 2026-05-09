@@ -18,6 +18,7 @@ export default function NewTaskModal() {
 
   const [project,  setProject]  = useState(defaultProject);
   const [mode,     setMode]     = useState('auto');
+  const [taskId,   setTaskId]   = useState('');
   const [maxLoops, setMaxLoops] = useState(5);
   const [message,  setMessage]  = useState('');
   const [autoStart, setAutoStart] = useState(true);
@@ -30,6 +31,10 @@ export default function NewTaskModal() {
     if (!message.trim())  e.message = 'Message / prompt is required';
     if (mode === 'auto' && (maxLoops < 1 || maxLoops > 100))
       e.maxLoops = 'Must be between 1 and 100';
+    const tid = taskId.trim();
+    if (tid && !/^[a-zA-Z0-9_-]{1,64}$/.test(tid)) {
+      e.taskId = 'Only letters, numbers, "_" and "-", max 64 chars';
+    }
     return e;
   };
 
@@ -47,13 +52,14 @@ export default function NewTaskModal() {
         mode,
         message:   message.trim(),
         max_loops: mode === 'auto' ? Number(maxLoops) : 1,
+        task_id:   taskId.trim() || undefined,
       });
 
-      const taskId = res?.data?.task_id || res?.task_id || res?.data?.id || res?.id;
+      const createdTaskId = res?.data?.task_id || res?.task_id || res?.data?.id || res?.id;
 
-      if (autoStart && taskId) {
+      if (autoStart && createdTaskId) {
         try {
-          await startTask(project, taskId);
+          await startTask(project, createdTaskId);
           showToast(`Task created & started`, 'success');
         } catch (startErr) {
           showToast(`Task created but start failed: ${startErr.message}`, 'info');
@@ -74,22 +80,22 @@ export default function NewTaskModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === e.currentTarget) setModal(null); }}
     >
       <div
-        className="relative w-full max-w-lg bg-surface-1 border border-surface-3 shadow-2xl animate-fade-in flex flex-col"
+        className="relative w-full max-w-lg bg-white border border-slate-200 rounded-xl shadow-2xl animate-fade-in flex flex-col"
         style={{ maxHeight: '90vh' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-surface-3 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <Terminal size={14} className="text-accent" />
-            <span className="font-mono font-semibold text-sm text-[#ccccee]">New Task</span>
+            <Terminal size={14} className="text-emerald-600" />
+            <span className="font-mono font-semibold text-sm text-[#0f172a]">New Task</span>
           </div>
           <button
             onClick={() => setModal(null)}
-            className="text-[#555570] hover:text-[#ccccee] transition-colors p-1"
+            className="text-slate-500 hover:text-slate-900 transition-colors p-1"
           >
             <X size={15} />
           </button>
@@ -100,7 +106,7 @@ export default function NewTaskModal() {
 
           {/* Project */}
           <div>
-            <label className="block font-mono text-[10px] text-[#444460] uppercase tracking-widest mb-1.5">
+            <label className="block font-mono text-[10px] text-[#64748b] uppercase tracking-widest mb-1.5">
               project *
             </label>
             {projectList.length > 0 ? (
@@ -109,42 +115,42 @@ export default function NewTaskModal() {
                   value={project}
                   onChange={(e) => setProject(e.target.value)}
                   className={`
-                    w-full appearance-none bg-surface-0 border text-[12px] font-mono text-[#aaaacc]
-                    px-3 py-2 pr-8 focus:outline-none transition-colors
-                    ${errors.project ? 'border-warn/50' : 'border-surface-3 focus:border-accent/40'}
+                    w-full appearance-none bg-white border text-[12px] font-mono text-[#1e293b]
+                    px-3 py-2 pr-8 focus:outline-none transition-colors rounded-lg
+                    ${errors.project ? 'border-red-300' : 'border-slate-300 focus:border-emerald-400'}
                   `}
                 >
                   {projectList.map((p) => (
-                    <option key={p} value={p} style={{ background: '#12121a' }}>{p}</option>
+                    <option key={p} value={p} style={{ background: '#ffffff' }}>{p}</option>
                   ))}
                 </select>
                 <ChevronDown
                   size={12}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#444460] pointer-events-none"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#64748b] pointer-events-none"
                 />
               </div>
             ) : (
-              <input
-                type="text"
-                value={project}
-                onChange={(e) => setProject(e.target.value)}
-                placeholder="project-name"
-                className={`
-                  w-full bg-surface-0 border text-[12px] font-mono text-[#aaaacc]
-                  px-3 py-2 focus:outline-none placeholder-[#333344] transition-colors
-                  ${errors.project ? 'border-warn/50' : 'border-surface-3 focus:border-accent/40'}
+                <input
+                  type="text"
+                  value={project}
+                  onChange={(e) => setProject(e.target.value)}
+                  placeholder="project-name"
+                  className={`
+                  w-full bg-white border text-[12px] font-mono text-[#1e293b]
+                  px-3 py-2 focus:outline-none placeholder-[#94a3b8] transition-colors rounded-lg
+                  ${errors.project ? 'border-red-300' : 'border-slate-300 focus:border-emerald-400'}
                 `}
               />
             )}
             {errors.project && (
-              <p className="mt-1 font-mono text-[10px] text-warn">{errors.project}</p>
+              <p className="mt-1 font-mono text-[10px] text-red-600">{errors.project}</p>
             )}
           </div>
 
           {/* Mode + Max loops */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-mono text-[10px] text-[#444460] uppercase tracking-widest mb-1.5">
+              <label className="block font-mono text-[10px] text-[#64748b] uppercase tracking-widest mb-1.5">
                 mode
               </label>
               <div className="flex flex-col gap-1">
@@ -153,17 +159,17 @@ export default function NewTaskModal() {
                     key={m.value}
                     type="button"
                     onClick={() => setMode(m.value)}
-                    className={`
+                      className={`
                       flex items-center gap-2 px-3 py-2 text-left border transition-colors
-                      font-mono text-[11px]
+                      font-mono text-[11px] rounded-lg
                       ${mode === m.value
-                        ? 'border-accent/40 bg-accent/10 text-accent'
-                        : 'border-surface-3 bg-surface-0 text-[#666680] hover:border-surface-4 hover:text-[#9999bb]'}
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-300 bg-white text-[#4b5563] hover:border-slate-400 hover:text-[#334155]'}
                     `}
                   >
                     <span
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: mode === m.value ? '#00d4aa' : '#333344' }}
+                      style={{ background: mode === m.value ? '#00a888' : '#94a3b8' }}
                     />
                     {m.label}
                   </button>
@@ -173,7 +179,7 @@ export default function NewTaskModal() {
 
             {mode === 'auto' && (
               <div>
-                <label className="block font-mono text-[10px] text-[#444460] uppercase tracking-widest mb-1.5">
+                <label className="block font-mono text-[10px] text-[#64748b] uppercase tracking-widest mb-1.5">
                   max loops
                 </label>
                 <input
@@ -183,24 +189,49 @@ export default function NewTaskModal() {
                   value={maxLoops}
                   onChange={(e) => setMaxLoops(e.target.value)}
                   className={`
-                    w-full bg-surface-0 border text-[12px] font-mono text-[#aaaacc]
-                    px-3 py-2 focus:outline-none transition-colors
-                    ${errors.maxLoops ? 'border-warn/50' : 'border-surface-3 focus:border-accent/40'}
+                    w-full bg-white border text-[12px] font-mono text-[#1e293b]
+                    px-3 py-2 focus:outline-none transition-colors rounded-lg
+                    ${errors.maxLoops ? 'border-red-300' : 'border-slate-300 focus:border-emerald-400'}
                   `}
                 />
                 {errors.maxLoops && (
-                  <p className="mt-1 font-mono text-[10px] text-warn">{errors.maxLoops}</p>
+                  <p className="mt-1 font-mono text-[10px] text-red-600">{errors.maxLoops}</p>
                 )}
-                <p className="mt-1 font-mono text-[10px] text-[#333344]">
+                <p className="mt-1 font-mono text-[10px] text-[#94a3b8]">
                   {MODES.find((m2) => m2.value === mode)?.desc}
                 </p>
               </div>
             )}
           </div>
 
+          {/* Custom task id */}
+          <div>
+            <label className="block font-mono text-[10px] text-[#64748b] uppercase tracking-widest mb-1.5">
+              task id (optional)
+            </label>
+            <input
+              type="text"
+              value={taskId}
+              onChange={(e) => setTaskId(e.target.value)}
+              placeholder="e.g. task_fix_login_01"
+              className={`
+                w-full bg-white border text-[12px] font-mono text-[#1e293b]
+                px-3 py-2 focus:outline-none placeholder-[#94a3b8] transition-colors rounded-lg
+                ${errors.taskId ? 'border-red-300' : 'border-slate-300 focus:border-emerald-400'}
+              `}
+            />
+            {errors.taskId ? (
+              <p className="mt-1 font-mono text-[10px] text-red-600">{errors.taskId}</p>
+            ) : (
+              <p className="mt-1 font-mono text-[10px] text-[#94a3b8]">
+                Leave empty to auto-generate.
+              </p>
+            )}
+          </div>
+
           {/* Message — the main field */}
           <div className="flex-1">
-            <label className="block font-mono text-[10px] text-[#444460] uppercase tracking-widest mb-1.5">
+            <label className="block font-mono text-[10px] text-[#64748b] uppercase tracking-widest mb-1.5">
               prompt / message *
             </label>
             <textarea
@@ -215,13 +246,13 @@ Example:
 - Stop when all critical issues are resolved"
               autoFocus
               className={`
-                w-full bg-surface-0 border text-[12px] font-mono text-[#aaaacc]
-                px-3 py-2.5 resize-none focus:outline-none placeholder-[#333344] leading-relaxed transition-colors
-                ${errors.message ? 'border-warn/50' : 'border-surface-3 focus:border-accent/40'}
+                w-full bg-white border text-[12px] font-mono text-[#1e293b]
+                px-3 py-2.5 resize-none focus:outline-none placeholder-[#94a3b8] leading-relaxed transition-colors rounded-lg
+                ${errors.message ? 'border-red-300' : 'border-slate-300 focus:border-emerald-400'}
               `}
             />
             {errors.message && (
-              <p className="mt-1 font-mono text-[10px] text-warn">{errors.message}</p>
+              <p className="mt-1 font-mono text-[10px] text-red-600">{errors.message}</p>
             )}
           </div>
 
@@ -231,18 +262,18 @@ Example:
               onClick={() => setAutoStart((v) => !v)}
               className={`
                 w-8 h-4 relative transition-colors
-                ${autoStart ? 'bg-accent/30 border-accent/40' : 'bg-surface-3 border-surface-4'}
-                border
+                ${autoStart ? 'bg-emerald-100 border-emerald-300' : 'bg-slate-200 border-slate-300'}
+                border rounded-full
               `}
             >
               <span
                 className={`
-                  absolute top-0.5 w-3 h-3 transition-all
-                  ${autoStart ? 'left-4 bg-accent' : 'left-0.5 bg-[#555570]'}
+                  absolute top-0.5 w-3 h-3 transition-all rounded-full
+                  ${autoStart ? 'left-4 bg-emerald-600' : 'left-0.5 bg-[#6b7280]'}
                 `}
               />
             </div>
-            <span className="font-mono text-[11px] text-[#666680]">
+            <span className="font-mono text-[11px] text-[#4b5563]">
               Start task immediately after creation
             </span>
           </label>
@@ -252,7 +283,7 @@ Example:
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-accent/10 border border-accent/30 text-accent font-mono text-[12px] hover:bg-accent/20 transition-colors disabled:opacity-40"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-50 border border-emerald-300 text-emerald-700 font-mono text-[12px] hover:bg-emerald-100 transition-colors disabled:opacity-40 rounded-lg"
             >
               <Play size={12} />
               {loading ? 'Creating…' : autoStart ? 'Create & Start' : 'Create Task'}
@@ -260,7 +291,7 @@ Example:
             <button
               type="button"
               onClick={() => setModal(null)}
-              className="px-4 py-2.5 border border-surface-3 text-[#555570] font-mono text-[12px] hover:bg-surface-3 hover:text-[#9999bb] transition-colors"
+              className="px-4 py-2.5 border border-slate-300 text-slate-600 font-mono text-[12px] hover:bg-slate-50 hover:text-[#334155] transition-colors rounded-lg"
             >
               Cancel
             </button>

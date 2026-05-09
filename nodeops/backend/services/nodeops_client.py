@@ -85,6 +85,16 @@ def _parse_json(resp: httpx.Response) -> Any:
         return {"raw_text": resp.text}
 
 
+def _guess_mime_from_data_url(value: str | None) -> str | None:
+    raw = str(value or "").strip()
+    if not raw.startswith("data:"):
+        return None
+    # data:<mime>;base64,....
+    head = raw.split(",", 1)[0]
+    mime = head[5:].split(";", 1)[0].strip()
+    return mime or None
+
+
 async def _retry_request(method: str, url: str, retries: int = 3, **kwargs) -> httpx.Response:
     """
     Execute request with retry for transient failures.
@@ -331,9 +341,20 @@ async def send_message(
     system: str | None = None,
     model: str | None = None,
     agent: str | None = None,
+    image_url: str | None = None,
+    image_mime: str | None = None,
 ) -> Any:
+    parts: list[dict[str, Any]] = []
+    if str(text or "").strip():
+        parts.append({"type": "text", "text": str(text)})
+    if str(image_url or "").strip():
+        mime = str(image_mime or "").strip() or _guess_mime_from_data_url(image_url) or "image/png"
+        parts.append({"type": "file", "mime": mime, "url": str(image_url)})
+    if not parts:
+        raise ValueError("send_message requires non-empty text or image_url")
+
     body: dict[str, Any] = {
-        "parts": [{"type": "text", "text": text}],
+        "parts": parts,
         "noReply": no_reply,
     }
     if system:

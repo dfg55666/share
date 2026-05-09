@@ -18,8 +18,11 @@ Supports:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import re
+import secrets
+import string
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -37,6 +40,7 @@ AUTH_BASE = "https://oneclick-backend.nodeops.xyz/api/v1"
 CREDITS_BASE = "https://api-createos.nodeops.network/v1"
 CONTROL_BASE = "https://stage-vibe-coder-api.nodeops.xyz/api/v1"
 DEFAULT_CREDIT_SKU_ID = "00000000-0000-0000-0000-000000000007"
+_TRANSIENT_HTTP_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
 _COMMON_HEADERS = {
     "Content-Type": "application/json",
@@ -67,7 +71,7 @@ class GmailConfig:
 @dataclass
 class RegisterConfig:
     # Whether to automatically redeem platform credits after registration
-    redeem_credits: bool = True
+    redeem_credits: bool = False
     redeem_amount_nodeops: int = 400      # NodeOps credits to redeem
     redeem_chunk_nodeops: int = 100       # chunk size (100 or 250)
     # Whether to create deployment + session after registration
@@ -149,6 +153,28 @@ async def _get(url: str, extra_headers: dict | None = None, params: dict | None 
 
 def _auth_hdrs(token: str) -> dict:
     return {"X-Auth-Token": token}
+
+
+async def _emit_log(log_hook, level: str, message: str, **extra):
+    """
+    Emit structured registration log events to optional callback.
+    Callback can be sync or async.
+    """
+    if not log_hook:
+        return
+    payload = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "level": level,
+        "message": message,
+        **extra,
+    }
+    try:
+        ret = log_hook(payload)
+        if inspect.isawaitable(ret):
+            await ret
+    except Exception:
+        # Log hooks must never break registration flow.
+        pass
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -369,18 +395,81 @@ async def _create_session(
     auth_token: str,
     timeout: int,
 ) -> str:
-    """POST /session → returns session_id."""
+    """POST /session with retry for warm-up 503/5xx → returns session_id."""
     headers = {
         "Content-Type": "application/json",
         "Accept": "*/*",
         "x-project-token": project_token,
         "y-gg-token": auth_token,
     }
-    resp = await _post(f"{server_endpoint}/session", {}, extra_headers=headers, timeout=timeout)
-    session_id = str(resp.get("id") or "").strip()
-    if not session_id:
-        raise RuntimeError(f"Create session returned no id: {resp}")
-    return session_id
+    session_url = f"{server_endpoint}/session"
+    max_attempts = 8
+    last_err: str = ""
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = await _post(session_url, {}, extra_headers=headers, timeout=timeout)
+            session_id = str(
+                resp.get("id")
+                or ((resp.get("data") or {}).get("id") if isinstance(resp.get("data"), dict) else "")
+                or ""
+            ).strip()
+            if session_id:
+                return session_id
+            last_err = f"Create session returned no id: {resp}"
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code if exc.response is not None else 0
+            text = ""
+            try:
+                text = exc.response.text[:300] if exc.response is not None else str(exc)
+            except Exception:
+                text = str(exc)
+            last_err = f"HTTP {status}: {text}"
+            if status not in _TRANSIENT_HTTP_STATUS:
+                raise
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            last_err = str(exc)
+        except Exception as exc:
+            last_err = str(exc)
+
+        if attempt >= max_attempts:
+            break
+        wait_s = min(2 + attempt, 10)
+        logger.warning(
+            "[register] create session retry %s/%s after error: %s",
+            attempt,
+            max_attempts,
+            last_err,
+        )
+        await asyncio.sleep(wait_s)
+
+    raise RuntimeError(
+        f"Create session failed after {max_attempts} attempts: {last_err}"
+    )
+
+
+async def _wait_runtime_ready(server_endpoint: str, timeout: int) -> bool:
+    """
+    Poll /health for warm-up.
+    Best-effort only: returns False on timeout/failure but does not raise.
+    """
+    health_url = f"{server_endpoint}/health"
+    attempts = 8
+    for attempt in range(1, attempts + 1):
+        try:
+            await _get(health_url, timeout=min(timeout, 15))
+            return True
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code if exc.response is not None else 0
+            if status not in _TRANSIENT_HTTP_STATUS and status != 404:
+                logger.warning("[register] runtime health non-retryable status=%s", status)
+                return False
+        except Exception:
+            pass
+
+        if attempt < attempts:
+            await asyncio.sleep(min(2 + attempt, 8))
+    return False
 
 
 async def bootstrap_runtime(
@@ -411,12 +500,38 @@ async def bootstrap_runtime(
         result["runtime_host"] = dep["server_endpoint"]
         result["project_token"] = dep["project_token"]
 
-        session_id = await _create_session(
-            dep["server_endpoint"],
-            dep["project_token"],
-            auth_token,
-            timeout,
-        )
+        # Fresh runtime may still be warming up; wait briefly before session creation.
+        await _wait_runtime_ready(dep["server_endpoint"], timeout)
+        try:
+            session_id = await _create_session(
+                dep["server_endpoint"],
+                dep["project_token"],
+                auth_token,
+                timeout,
+            )
+        except Exception as first_exc:
+            # If runtime endpoint is stuck on repeated 503/5xx, recreate deployment once.
+            logger.warning(
+                "[register] first session creation failed on deployment=%s, retry with fresh deployment: %s",
+                dep.get("deployment_id"),
+                first_exc,
+            )
+            dep2 = await _create_deployment_pi_agent(auth_token, timeout)
+            if dep2.get("queued"):
+                raise RuntimeError(
+                    f"Session create failed on first deployment ({first_exc}); "
+                    f"second deployment queued request_id={dep2.get('request_id')}"
+                )
+            result["deployment_id"] = dep2["deployment_id"]
+            result["runtime_host"] = dep2["server_endpoint"]
+            result["project_token"] = dep2["project_token"]
+            await _wait_runtime_ready(dep2["server_endpoint"], timeout)
+            session_id = await _create_session(
+                dep2["server_endpoint"],
+                dep2["project_token"],
+                auth_token,
+                timeout,
+            )
         result["session_id"] = session_id
         result["ok"] = True
         return result
@@ -436,6 +551,7 @@ async def register_account(
     otp: str,
     cfg: RegisterConfig,
     save_to_pool: bool = True,
+    log_hook=None,
 ) -> RegisterResult:
     """
     Given email + OTP (already fetched), run:
@@ -445,15 +561,18 @@ async def register_account(
 
     # ── Verify OTP ─────────────────────────────────────────────────────────
     try:
+        await _emit_log(log_hook, "info", "Verifying OTP", email=email)
         verify_resp = await verify_otp(email, otp, timeout=cfg.http_timeout_s)
     except Exception as exc:
         result.error = f"OTP verification failed: {exc}"
+        await _emit_log(log_hook, "error", "OTP verification failed", email=email, error=str(exc))
         logger.error("[register] %s", result.error)
         return result
 
     token, uid, is_new, is_wallet = _extract_token_fields(verify_resp)
     if not token:
         result.error = f"Verification succeeded but no token returned: {verify_resp}"
+        await _emit_log(log_hook, "error", "Verification returned no token", email=email)
         logger.error("[register] %s", result.error)
         return result
 
@@ -461,11 +580,18 @@ async def register_account(
     result.uuid_ = uid
     result.is_new_user = is_new
     result.is_wallet_registered = is_wallet
+    await _emit_log(log_hook, "success", "OTP verified", email=email, uuid=uid, is_new_user=is_new)
     logger.info("[register] verified %s uuid=%s is_new=%s", email, uid, is_new)
 
     # ── Redeem credits (optional) ──────────────────────────────────────────
     if cfg.redeem_credits and cfg.redeem_amount_nodeops > 0:
         try:
+            await _emit_log(
+                log_hook, "info", "Redeeming credits",
+                email=email,
+                nodeops_credits=cfg.redeem_amount_nodeops,
+                chunk=cfg.redeem_chunk_nodeops,
+            )
             redeem_result = await redeem_credits(
                 auth_token=token,
                 nodeops_credits=cfg.redeem_amount_nodeops,
@@ -475,6 +601,14 @@ async def register_account(
             result.credits_redeemed = float(redeem_result.get("redeemed_openrouter", 0))
             result.credits_redeem_ok = bool(redeem_result.get("success"))
             result.detail["redeem"] = redeem_result
+            await _emit_log(
+                log_hook,
+                "success" if result.credits_redeem_ok else "warning",
+                "Credit redeem finished",
+                email=email,
+                success=result.credits_redeem_ok,
+                redeemed_openrouter=result.credits_redeemed,
+            )
             logger.info(
                 "[register] redeem %s: success=%s redeemed_nodeops=%s",
                 email,
@@ -483,10 +617,12 @@ async def register_account(
             )
         except Exception as exc:
             logger.warning("[register] redeem failed for %s: %s", email, exc)
+            await _emit_log(log_hook, "warning", "Credit redeem failed", email=email, error=str(exc))
             result.detail["redeem_error"] = str(exc)
 
     # ── Bootstrap runtime (optional) ──────────────────────────────────────
     if cfg.create_runtime:
+        await _emit_log(log_hook, "info", "Creating runtime deployment/session", email=email)
         rt = await bootstrap_runtime(auth_token=token, timeout=cfg.http_timeout_s)
         result.deployment_id = rt.get("deployment_id", "")
         result.runtime_host = rt.get("runtime_host", "")
@@ -494,6 +630,16 @@ async def register_account(
         result.session_id = rt.get("session_id", "")
         result.runtime_ready = rt.get("ok", False)
         result.detail["runtime"] = rt
+        await _emit_log(
+            log_hook,
+            "success" if rt.get("ok") else "warning",
+            "Runtime bootstrap finished",
+            email=email,
+            ok=bool(rt.get("ok")),
+            deployment_id=result.deployment_id,
+            session_id=result.session_id,
+            error=rt.get("error", ""),
+        )
         if not rt["ok"]:
             logger.warning("[register] runtime bootstrap failed for %s: %s", email, rt.get("error"))
 
@@ -528,11 +674,14 @@ async def register_account(
                 if result.session_id:
                     account_pool.update_account(acc["id"], {"session_id": result.session_id})
             logger.info("[register] saved account %s id=%s", email, result.account_id)
+            await _emit_log(log_hook, "success", "Account saved to pool", email=email, account_id=result.account_id)
         except Exception as exc:
             logger.error("[register] save to pool failed for %s: %s", email, exc)
+            await _emit_log(log_hook, "warning", "Save to pool failed", email=email, error=str(exc))
             result.detail["pool_error"] = str(exc)
 
     result.ok = True
+    await _emit_log(log_hook, "success", "Registration flow finished", email=email, ok=True)
     return result
 
 
@@ -545,6 +694,7 @@ async def gmail_auto_register(
     gmail_cfg: GmailConfig,
     reg_cfg: RegisterConfig,
     save_to_pool: bool = True,
+    log_hook=None,
 ) -> RegisterResult:
     """
     Full automatic registration flow using Gmail IMAP:
@@ -560,11 +710,14 @@ async def gmail_auto_register(
 
     # Step 1: send OTP
     try:
+        await _emit_log(log_hook, "info", "Sending OTP", email=target_email)
         send_resp = await send_otp(target_email, timeout=30)
         result.detail["send_otp"] = send_resp
+        await _emit_log(log_hook, "success", "OTP sent", email=target_email)
         logger.info("[register] OTP sent to %s", target_email)
     except Exception as exc:
         result.error = f"Failed to send OTP to {target_email}: {exc}"
+        await _emit_log(log_hook, "error", "Send OTP failed", email=target_email, error=str(exc))
         logger.error("[register] %s", result.error)
         return result
 
@@ -583,6 +736,14 @@ async def gmail_auto_register(
 
     # Use the target email as filter so we pick the right alias's email
     to_filter = target_email if "+" in target_email else ""
+    await _emit_log(
+        log_hook,
+        "info",
+        "Polling Gmail for OTP",
+        email=target_email,
+        timeout_s=gmail_cfg.otp_timeout_s,
+        poll_interval_s=gmail_cfg.poll_interval_s,
+    )
 
     fetch_result = await inbox.wait_for_code(
         to_email_contains=to_filter,
@@ -594,10 +755,12 @@ async def gmail_auto_register(
 
     if not fetch_result.ok or not fetch_result.best_code:
         result.error = f"Could not fetch OTP from Gmail: {fetch_result.error}"
+        await _emit_log(log_hook, "error", "Gmail OTP fetch failed", email=target_email, error=fetch_result.error)
         logger.error("[register] %s", result.error)
         return result
 
     otp = fetch_result.best_code
+    await _emit_log(log_hook, "success", "OTP fetched from Gmail", email=target_email, otp=otp)
     logger.info("[register] Got OTP for %s: %s", target_email, otp)
 
     # Steps 3-5
@@ -606,6 +769,7 @@ async def gmail_auto_register(
         otp=otp,
         cfg=reg_cfg,
         save_to_pool=save_to_pool,
+        log_hook=log_hook,
     )
     reg.detail.update(result.detail)
     return reg
@@ -621,6 +785,7 @@ async def batch_gmail_register(
     reg_cfg: RegisterConfig,
     concurrency: int = 3,
     save_to_pool: bool = True,
+    log_hook=None,
 ) -> list[RegisterResult]:
     """
     Register multiple accounts concurrently with a semaphore to throttle.
@@ -630,34 +795,105 @@ async def batch_gmail_register(
     a unique NodeOps account but all OTPs land in the same inbox.
     """
     sem = asyncio.Semaphore(concurrency)
+    total = len(emails)
+    success_count = 0
+    done_count = 0
 
-    async def _one(email: str) -> RegisterResult:
+    await _emit_log(
+        log_hook,
+        "info",
+        "Batch registration started",
+        total=total,
+        concurrency=concurrency,
+    )
+
+    async def _one(idx: int, email: str) -> tuple[int, RegisterResult]:
         async with sem:
-            return await gmail_auto_register(
+            await _emit_log(log_hook, "info", "Account registration started", index=idx + 1, total=total, email=email)
+            res = await gmail_auto_register(
                 target_email=email,
                 gmail_cfg=gmail_cfg,
                 reg_cfg=reg_cfg,
                 save_to_pool=save_to_pool,
+                log_hook=log_hook,
             )
+            await _emit_log(
+                log_hook,
+                "success" if res.ok else "error",
+                "Account registration finished",
+                index=idx + 1,
+                total=total,
+                email=email,
+                ok=res.ok,
+                error=res.error,
+            )
+            return idx, res
 
-    tasks = [asyncio.create_task(_one(e)) for e in emails]
+    tasks = [asyncio.create_task(_one(i, e)) for i, e in enumerate(emails)]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    final: list[RegisterResult] = []
-    for email, r in zip(emails, results):
+    indexed: list[tuple[int, RegisterResult]] = []
+    for idx, r in enumerate(results):
+        email = emails[idx]
         if isinstance(r, Exception):
-            final.append(RegisterResult(ok=False, email=email, error=str(r)))
+            out_idx = idx
+            rr = RegisterResult(ok=False, email=email, error=str(r))
         else:
-            final.append(r)
+            # Normal branch: _one returns (index, RegisterResult)
+            try:
+                out_idx, rr = r
+            except Exception:
+                out_idx = idx
+                rr = RegisterResult(
+                    ok=False,
+                    email=email,
+                    error=f"Unexpected batch result type: {type(r).__name__}",
+                )
+
+        indexed.append((out_idx, rr))
+
+        done_count += 1
+        if rr.ok:
+            success_count += 1
+        await _emit_log(
+            log_hook,
+            "info",
+            "Batch progress",
+            done=done_count,
+            total=total,
+            success=success_count,
+            failed=done_count - success_count,
+        )
+
+    indexed.sort(key=lambda x: x[0])
+    final = [x[1] for x in indexed]
+
+    await _emit_log(
+        log_hook,
+        "success",
+        "Batch registration completed",
+        total=total,
+        success=success_count,
+        failed=total - success_count,
+    )
     return final
 
 
-def generate_gmail_aliases(base_email: str, count: int, prefix: str = "no") -> list[str]:
+def generate_gmail_aliases(base_email: str, count: int) -> list[str]:
     """
-    Generate Gmail plus-address aliases:
-      feijidfg55+no001@gmail.com, feijidfg55+no002@gmail.com, ...
+    Generate Gmail plus-address aliases with random 4-char suffix:
+      feijidfg55+a1b2@gmail.com, feijidfg55+9k3m@gmail.com, ...
 
     All delivered to the same Gmail inbox so one GmailIMAPInbox handles all.
     """
     local, domain = base_email.split("@", 1)
-    return [f"{local}+{prefix}{i:03d}@{domain}" for i in range(1, count + 1)]
+    chars = string.ascii_lowercase + string.digits
+    used: set[str] = set()
+    aliases: list[str] = []
+    while len(aliases) < count:
+        suffix = "".join(secrets.choice(chars) for _ in range(4))
+        if suffix in used:
+            continue
+        used.add(suffix)
+        aliases.append(f"{local}+{suffix}@{domain}")
+    return aliases

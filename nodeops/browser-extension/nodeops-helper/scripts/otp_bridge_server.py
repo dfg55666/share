@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -71,6 +72,20 @@ def build_fetch_command(payload):
     return cmd
 
 
+def _as_float(value, default):
+    try:
+        return float(value)
+    except Exception:
+        return float(default)
+
+
+def _as_int(value, default):
+    try:
+        return int(value)
+    except Exception:
+        return int(default)
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, code, body):
         data = json.dumps(body, ensure_ascii=False).encode("utf-8")
@@ -109,51 +124,104 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             cmd = build_fetch_command(payload)
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         except Exception as exc:
             self._send_json(500, {"ok": False, "error": f"Bridge execution error: {exc}"})
             return
 
-        stdout = (proc.stdout or "").strip()
-        stderr = (proc.stderr or "").strip()
-        if proc.returncode != 0:
-            self._send_json(
-                500,
-                {
-                    "ok": False,
-                    "error": "fetch_verification_code failed",
-                    "return_code": proc.returncode,
-                    "stdout": stdout[-1000:],
-                    "stderr": stderr[-1000:],
-                },
-            )
-            return
+        # Long-poll semantics:
+        # - Keep a single HTTP request open while polling mailbox repeatedly.
+        # - Return only when OTP is found or overall timeout reached.
+        wait_timeout_s = max(5.0, _as_float(payload.get("wait_timeout_s"), 300.0))
+        poll_interval_s = max(0.5, _as_float(payload.get("poll_interval_s"), 5.0))
+        cmd_timeout_s = max(5, _as_int(payload.get("command_timeout_s"), 120))
 
-        try:
-            data = json.loads(stdout)
-        except Exception as exc:
-            self._send_json(
-                500,
-                {
-                    "ok": False,
-                    "error": f"Invalid JSON output: {exc}",
-                    "stdout": stdout[-1000:],
-                },
-            )
-            return
+        deadline = time.monotonic() + wait_timeout_s
+        attempt = 0
+        last_error = {
+            "return_code": None,
+            "stdout": "",
+            "stderr": "",
+            "error": "not_started",
+        }
 
-        self._send_json(
-            200,
-            {
-                "ok": True,
-                "code": data.get("best_code", ""),
-                "to": data.get("to", ""),
-                "from": data.get("from", ""),
-                "subject": data.get("subject", ""),
-                "date": data.get("date", ""),
-                "deleted": bool(data.get("deleted")),
-            },
-        )
+        while True:
+            attempt += 1
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                self._send_json(
+                    200,
+                    {
+                        "ok": False,
+                        "error": "otp_wait_timeout",
+                        "attempts": attempt - 1,
+                        "last_error": last_error,
+                    },
+                )
+                return
+
+            per_try_timeout = max(5, min(cmd_timeout_s, int(remaining) + 1))
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=per_try_timeout)
+            except Exception as exc:
+                self._send_json(500, {"ok": False, "error": f"Bridge execution error: {exc}"})
+                return
+
+            stdout = (proc.stdout or "").strip()
+            stderr = (proc.stderr or "").strip()
+
+            if proc.returncode == 0:
+                try:
+                    data = json.loads(stdout)
+                except Exception as exc:
+                    self._send_json(
+                        500,
+                        {
+                            "ok": False,
+                            "error": f"Invalid JSON output: {exc}",
+                            "stdout": stdout[-1000:],
+                        },
+                    )
+                    return
+
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "code": data.get("best_code", ""),
+                        "to": data.get("to", ""),
+                        "from": data.get("from", ""),
+                        "subject": data.get("subject", ""),
+                        "date": data.get("date", ""),
+                        "deleted": bool(data.get("deleted")),
+                        "attempts": attempt,
+                    },
+                )
+                return
+
+            # retryable "no mail/no code yet" states from fetch_verification_code.py
+            # 3: no messages, 4: no likely verification email with code
+            last_error = {
+                "return_code": proc.returncode,
+                "stdout": stdout[-1000:],
+                "stderr": stderr[-1000:],
+                "error": "fetch_verification_code_failed",
+            }
+            if proc.returncode not in (3, 4):
+                self._send_json(
+                    500,
+                    {
+                        "ok": False,
+                        "error": "fetch_verification_code failed",
+                        "return_code": proc.returncode,
+                        "stdout": stdout[-1000:],
+                        "stderr": stderr[-1000:],
+                        "attempts": attempt,
+                    },
+                )
+                return
+
+            sleep_s = min(poll_interval_s, max(0.1, deadline - time.monotonic()))
+            time.sleep(sleep_s)
 
 
 def main():

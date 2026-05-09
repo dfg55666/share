@@ -10,11 +10,14 @@ GET  /api/register/aliases           — generate Gmail plus-address aliases pre
 """
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 import logging
-from typing import Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from backend.services.register import (
@@ -51,7 +54,7 @@ class SendOtpRequest(BaseModel):
 class VerifyRequest(BaseModel):
     email: str
     otp: str
-    redeem_credits: bool = True
+    redeem_credits: bool = False
     redeem_amount: int = 400
     redeem_chunk: int = 100
     create_runtime: bool = True
@@ -75,7 +78,7 @@ class GmailAutoRequest(BaseModel):
     poll_interval_s: float = 5.0
     otp_timeout_s: int = 180
     # Registration options
-    redeem_credits: bool = True
+    redeem_credits: bool = False
     redeem_amount: int = 400
     redeem_chunk: int = 100
     create_runtime: bool = True
@@ -85,7 +88,6 @@ class GmailAutoRequest(BaseModel):
 class GmailBatchRequest(BaseModel):
     """Batch Gmail auto-register via plus-addressing."""
     count: int = Field(default=1, ge=1, le=50)
-    alias_prefix: str = Field(default="no", description="Prefix for generated aliases e.g. 'no' → +no001")
     base_email: str = Field(default="", description="Base Gmail address; default from env")
     gmail_app_password: str = Field(default="")
     proxy_host: str = Field(default="")
@@ -97,7 +99,7 @@ class GmailBatchRequest(BaseModel):
     poll_interval_s: float = 5.0
     otp_timeout_s: int = 180
     concurrency: int = Field(default=3, ge=1, le=20)
-    redeem_credits: bool = True
+    redeem_credits: bool = False
     redeem_amount: int = 400
     redeem_chunk: int = 100
     create_runtime: bool = True
@@ -120,7 +122,6 @@ class FetchOtpRequest(BaseModel):
 class AliasesRequest(BaseModel):
     base_email: str = Field(default="")
     count: int = Field(default=5, ge=1, le=100)
-    prefix: str = "no"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -150,6 +151,10 @@ def _reg_cfg(redeem: bool, amount: int, chunk: int,
 
 def _result_resp(r: RegisterResult) -> dict:
     return {"success": r.ok, "data": r.to_dict()}
+
+
+def _sse_event(event: str, data: Any) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────
@@ -223,11 +228,11 @@ async def api_gmail_auto(req: GmailAutoRequest):
 async def api_gmail_batch(req: GmailBatchRequest):
     """
     Batch automatic registration via Gmail plus-addressing.
-    Generates `count` aliases (base+prefix001, +prefix002 …),
+    Generates `count` aliases with random 4-char suffix after '+',
     registers them concurrently, returns per-account results.
     """
     base = req.base_email.strip() or _DEFAULT_GMAIL
-    aliases = generate_gmail_aliases(base, req.count, req.alias_prefix)
+    aliases = generate_gmail_aliases(base, req.count)
 
     gcfg = _gmail_cfg(
         base, req.gmail_app_password,
@@ -265,6 +270,98 @@ async def api_gmail_batch(req: GmailBatchRequest):
     }
 
 
+@router.post("/gmail-batch/stream")
+async def api_gmail_batch_stream(req: GmailBatchRequest):
+    """
+    Streaming batch registration endpoint (SSE).
+    Emits:
+      - event: meta   (aliases + total)
+      - event: log    (step logs from register service)
+      - event: result (final aggregate result)
+      - event: error  (fatal error)
+      - event: end
+    """
+    base = req.base_email.strip() or _DEFAULT_GMAIL
+    aliases = generate_gmail_aliases(base, req.count)
+
+    gcfg = _gmail_cfg(
+        base, req.gmail_app_password,
+        req.proxy_host, req.proxy_port, req.proxy_type,
+        lookback_hours=req.lookback_hours,
+        max_mails=req.max_mails,
+        delete_best=req.delete_best,
+        poll_interval_s=req.poll_interval_s,
+        otp_timeout_s=req.otp_timeout_s,
+    )
+    rcfg = _reg_cfg(req.redeem_credits, req.redeem_amount, req.redeem_chunk, req.create_runtime)
+
+    q: asyncio.Queue[dict | None] = asyncio.Queue()
+
+    async def _log_hook(payload: dict):
+        await q.put({"event": "log", "data": payload})
+
+    async def _runner():
+        try:
+            results = await batch_gmail_register(
+                emails=aliases,
+                gmail_cfg=gcfg,
+                reg_cfg=rcfg,
+                concurrency=req.concurrency,
+                save_to_pool=req.save_to_pool,
+                log_hook=_log_hook,
+            )
+            items = [r.to_dict() for r in results]
+            success_count = sum(1 for r in results if r.ok)
+            await q.put({
+                "event": "result",
+                "data": {
+                    "total": len(results),
+                    "success_count": success_count,
+                    "failure_count": len(results) - success_count,
+                    "aliases": aliases,
+                    "items": items,
+                },
+            })
+        except Exception as exc:
+            await q.put({
+                "event": "error",
+                "data": {"message": str(exc)},
+            })
+        finally:
+            await q.put(None)
+
+    runner_task = asyncio.create_task(_runner())
+
+    async def _event_stream():
+        try:
+            yield _sse_event("meta", {"total": len(aliases), "aliases": aliases})
+            while True:
+                item = await q.get()
+                if item is None:
+                    yield _sse_event("end", {"ok": True})
+                    break
+                yield _sse_event(str(item.get("event") or "log"), item.get("data", {}))
+        finally:
+            if not runner_task.done():
+                runner_task.cancel()
+                try:
+                    await runner_task
+                except asyncio.CancelledError:
+                    pass
+                except Exception:
+                    pass
+
+    return StreamingResponse(
+        _event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @router.post("/fetch-otp")
 async def api_fetch_otp(req: FetchOtpRequest):
     """
@@ -298,5 +395,5 @@ async def api_fetch_otp(req: FetchOtpRequest):
 async def api_aliases(req: AliasesRequest):
     """Preview Gmail plus-address aliases that would be used in batch mode."""
     base = req.base_email.strip() or _DEFAULT_GMAIL
-    aliases = generate_gmail_aliases(base, req.count, req.prefix)
+    aliases = generate_gmail_aliases(base, req.count)
     return {"success": True, "data": {"base_email": base, "aliases": aliases}}

@@ -1,0 +1,31 @@
+{
+  "id": "abc",
+  "project": "11",
+  "mode": "auto",
+  "status": "completed",
+  "message": "hello",
+  "current_account_id": "257f0c57-5be6-45a3-8e2f-e89647efa9d8",
+  "current_session_id": "ses_1f3fda378ffeGji2XSkMb1Q3LS",
+  "current_runtime_host": "tender-tu5-161526.syra.nodeops.app",
+  "current_project_token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiZTI3OGRkYTMtZGFiZS00MjFlLTkwY2YtOWM3MjBkOTUyYmQxIiwiZGVwbG95bWVudF9pZCI6IjE2OTJmM2UzLWI0ZjEtNDkxMC04NmFiLTUxMDYyNTU2ZmExMSIsImlzcyI6InZpYmUtY29kZXItYmUiLCJhdWQiOiIxNjkyZjNlMy1iNGYxLTQ5MTAtODZhYi01MTA2MjU1NmZhMTEiLCJleHAiOjE3ODA5MDk5NDEsImlhdCI6MTc3ODMxNzk0MSwibmJmIjoxNzc4MzE3OTQxLCJqdGkiOiI0ZTRlYjExMC0wYmU5LTRhOWMtYjgwMS01MjNhNjE5YjQzYWQifQ.kFlBLA_TjpcWCy3aGVrU1Ev9s6N9fW4LHwjmkeyWauEVC1nqb9FyYIt06xF0pdQECaqtydOfhEqzZGgTmy4dUg",
+  "loop_count": 1,
+  "max_loops": 5,
+  "session_index": 2,
+  "used_account_ids": [
+    "257f0c57-5be6-45a3-8e2f-e89647efa9d8"
+  ],
+  "loops": [
+    {
+      "index": 1,
+      "account_email": "feijidfg55+codex20260509142517@gmail.com",
+      "session_id": null,
+      "started_at": "2026-05-09T08:40:36.017032+00:00",
+      "ended_at": "2026-05-09T08:42:41.978837+00:00",
+      "end_reason": "completed",
+      "git_commit": null
+    }
+  ],
+  "error": null,
+  "created_at": "2026-05-09T08:40:35.401203+00:00",
+  "updated_at": "2026-05-09T09:12:22.204542+00:00"
+}

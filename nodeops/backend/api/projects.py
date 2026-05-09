@@ -15,11 +15,13 @@ class CreateProjectRequest(BaseModel):
     name: str
     github_url: str = ""
     description: str = ""
+    local_repo_path: str = ""
 
 
 class UpdateProjectRequest(BaseModel):
     github_url: str | None = None
     description: str | None = None
+    local_repo_path: str | None = None
 
 
 @router.get("")
@@ -37,6 +39,7 @@ def list_projects():
                 tasks_path = pdir / "tasks"
                 task_count = len(list(tasks_path.glob("*.json"))) if tasks_path.exists() else 0
                 pj["task_count"] = task_count
+                pj["repo_path"] = str(repo_dir(pj.get("name", pdir.name)))
                 projects.append(pj)
     return {"success": True, "data": projects}
 
@@ -46,6 +49,7 @@ def get_project(project_name: str):
     pj = read_json(project_json(project_name))
     if not pj:
         raise HTTPException(404, "Project not found")
+    pj["repo_path"] = str(repo_dir(project_name))
     return {"success": True, "data": pj}
 
 
@@ -67,6 +71,7 @@ async def create_project(req: CreateProjectRequest):
         "name": name,
         "github_url": req.github_url,
         "description": req.description,
+        "local_repo_path": req.local_repo_path.strip(),
         "created_at": now_iso(),
     }
     write_json(project_json(name), project)
@@ -77,6 +82,8 @@ async def create_project(req: CreateProjectRequest):
         if not success:
             # Still create project, just warn
             project["clone_error"] = "Failed to clone repository"
+
+    project["repo_path"] = str(repo_dir(name))
 
     return {"success": True, "data": project}
 
@@ -91,6 +98,7 @@ def update_project(project_name: str, req: UpdateProjectRequest):
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
     pj.update(updates)
     write_json(pj_path, pj)
+    pj["repo_path"] = str(repo_dir(project_name))
     return {"success": True, "data": pj}
 
 
@@ -114,7 +122,15 @@ async def clone_repo(project_name: str):
     if not pj.get("github_url"):
         raise HTTPException(400, "No GitHub URL configured")
 
-    # Remove existing repo dir if present
+    # Safety: if a custom local repo path is configured, do not auto-delete/reclone.
+    local_repo_path = str((pj or {}).get("local_repo_path") or "").strip()
+    if local_repo_path:
+        raise HTTPException(
+            400,
+            "Project uses local_repo_path; skip re-clone endpoint to avoid deleting local repo. Use git pull manually.",
+        )
+
+    # Remove existing managed repo dir if present
     rdir = repo_dir(project_name)
     if rdir.exists():
         import shutil

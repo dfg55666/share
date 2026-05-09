@@ -113,6 +113,20 @@ def tasks_dir(project_name: str) -> Path:
 
 
 def repo_dir(project_name: str) -> Path:
+    """
+    Resolve repo directory for a project.
+    Priority:
+      1) project.json.local_repo_path (if configured)
+      2) default managed path: data/projects/<name>/repo
+    """
+    pj = read_json(project_json(project_name))
+    if isinstance(pj, dict):
+        raw_local = str(pj.get("local_repo_path") or "").strip()
+        if raw_local:
+            p = Path(raw_local).expanduser()
+            if not p.is_absolute():
+                p = (project_dir(project_name) / p).resolve()
+            return p
     return project_dir(project_name) / "repo"
 
 

@@ -52,7 +52,7 @@ export default function Toast() {
 function ToastItem({ toast, onRemove }) {
   const configs = {
     error:   { icon: <AlertTriangle size={13} style={{ color: '#ff6b4a', flexShrink: 0 }} />, border: 'rgba(255,107,74,0.35)', accent: '#ff6b4a' },
-    success: { icon: <CheckCircle   size={13} style={{ color: '#00d4aa', flexShrink: 0 }} />, border: 'rgba(0,212,170,0.35)',  accent: '#00d4aa' },
+    success: { icon: <CheckCircle   size={13} style={{ color: '#00a888', flexShrink: 0 }} />, border: 'rgba(0,168,136,0.35)',  accent: '#00a888' },
     info:    { icon: <Info          size={13} style={{ color: '#4a9eff', flexShrink: 0 }} />, border: 'rgba(74,158,255,0.35)', accent: '#4a9eff' },
   };
   const cfg = configs[toast.type] || configs.info;
@@ -67,13 +67,13 @@ function ToastItem({ toast, onRemove }) {
         padding: '8px 10px 8px 12px',
         minWidth: 260,
         maxWidth: 380,
-        background: '#1a1a25',
+        background: '#ffffff',
         border: `1px solid ${cfg.border}`,
         borderLeft: `3px solid ${cfg.accent}`,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 11,
-        color: '#ccccee',
+        color: '#0f172a',
         animation: 'fadeSlideIn 0.2s ease-out',
       }}
     >
@@ -85,15 +85,15 @@ function ToastItem({ toast, onRemove }) {
           marginLeft: 4,
           background: 'none',
           border: 'none',
-          color: '#444460',
+          color: '#64748b',
           cursor: 'pointer',
           padding: '1px 2px',
           display: 'flex',
           alignItems: 'center',
           flexShrink: 0,
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#ccccee')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = '#444460')}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#0f172a')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
       >
         <X size={11} />
       </button>

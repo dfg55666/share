@@ -26,7 +26,7 @@ export default function StatusBar() {
   const totalTasks        = overview.total_tasks        ?? Object.values(tasks).flat().length;
 
   const sep = (
-    <span style={{ color: '#222233' }}>│</span>
+    <span style={{ color: '#e2e8f0' }}>│</span>
   );
 
   return (
@@ -37,24 +37,24 @@ export default function StatusBar() {
         gap: 16,
         padding: '0 16px',
         height: 28,
-        background: '#0d0d16',
-        borderTop: '1px solid #1e1e2e',
+        background: '#f1f5f9',
+        borderTop: '1px solid #e8f4f1',
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 11,
-        color: '#555570',
+        color: '#6b7280',
         flexShrink: 0,
         userSelect: 'none',
       }}
     >
       {/* Accounts */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <Users size={9} style={{ color: '#333344' }} />
+        <Users size={9} style={{ color: '#94a3b8' }} />
         <span>
-          <span style={{ color: '#444460' }}>accounts: </span>
-          <span style={{ color: '#00d4aa' }}>{availableAccounts}</span>
-          <span style={{ color: '#333344' }}>/</span>
+          <span style={{ color: '#64748b' }}>accounts: </span>
+          <span style={{ color: '#00a888' }}>{availableAccounts}</span>
+          <span style={{ color: '#94a3b8' }}>/</span>
           <span style={{ color: '#888899' }}>{totalAccounts}</span>
-          <span style={{ color: '#444460' }}> avail</span>
+          <span style={{ color: '#64748b' }}> avail</span>
         </span>
       </div>
 
@@ -62,15 +62,15 @@ export default function StatusBar() {
 
       {/* Tasks */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <Activity size={9} style={{ color: '#333344' }} />
+        <Activity size={9} style={{ color: '#94a3b8' }} />
         <span>
-          <span style={{ color: '#444460' }}>tasks: </span>
-          <span style={{ color: runningTasks > 0 ? '#00d4aa' : '#888899' }}>
+          <span style={{ color: '#64748b' }}>tasks: </span>
+          <span style={{ color: runningTasks > 0 ? '#00a888' : '#888899' }}>
             {runningTasks}
           </span>
-          <span style={{ color: '#444460' }}> running</span>
+          <span style={{ color: '#64748b' }}> running</span>
           {totalTasks > 0 && (
-            <span style={{ color: '#333344' }}> / {totalTasks} total</span>
+            <span style={{ color: '#94a3b8' }}> / {totalTasks} total</span>
           )}
         </span>
       </div>
@@ -87,12 +87,12 @@ export default function StatusBar() {
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: '#00d4aa',
-                boxShadow: '0 0 4px rgba(0,212,170,0.6)',
+                background: '#00a888',
+                boxShadow: '0 0 4px rgba(0,168,136,0.6)',
               }}
             />
-            <Wifi size={9} style={{ color: '#00d4aa' }} />
-            <span style={{ color: '#00d4aa' }}>connected</span>
+            <Wifi size={9} style={{ color: '#00a888' }} />
+            <span style={{ color: '#00a888' }}>connected</span>
           </>
         ) : (
           <>
@@ -112,7 +112,7 @@ export default function StatusBar() {
       </div>
 
       {/* Spacer + version */}
-      <div style={{ marginLeft: 'auto', color: '#222233' }}>
+      <div style={{ marginLeft: 'auto', color: '#e2e8f0' }}>
         nodeops-manager v0.1
       </div>
     </div>

@@ -1,7 +1,7 @@
 # NodeOps Manager — 项目计划文档
 
 > 日期：2026-05-09
-> 状态：设计完成，待开发
+> 状态：后端核心已落地（FastAPI + task loop + SSE + skills），联调与前端收口中
 
 ---
 

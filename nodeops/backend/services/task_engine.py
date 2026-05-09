@@ -9,6 +9,7 @@ Oneshot mode: credit exhausted → blocked
 """
 import asyncio
 import json
+import os
 import uuid
 import logging
 import time
@@ -21,6 +22,12 @@ from backend.services import account_pool
 from backend.services import workspace_sync
 from backend.services import session_recorder
 from backend.services import credit_monitor
+from backend.services.register import (
+    GmailConfig,
+    RegisterConfig,
+    generate_gmail_aliases,
+    gmail_auto_register,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +213,114 @@ def is_task_running(task_id: str) -> bool:
     return task_id in _active_tasks and not _active_tasks[task_id].done()
 
 
+async def create_empty_session(project_name: str, task_id: str) -> dict:
+    """Create an empty upstream session for a task without starting task loop."""
+    task = get_task(project_name, task_id)
+    if not task:
+        raise ValueError(f"Task {task_id} not found")
+
+    active_statuses = {
+        "running", "monitoring", "pending", "switching",
+        "syncing", "pushing", "acquiring_account", "auto_registering_account",
+    }
+    if str(task.get("status") or "").lower() in active_statuses and is_task_running(task_id):
+        raise ValueError("Task is running; stop it before creating a manual session")
+
+    account: dict | None = None
+    current_account_id = str(task.get("current_account_id") or "").strip()
+    if current_account_id:
+        account = account_pool.get_account(current_account_id)
+
+    if not account:
+        account = account_pool.acquire_account(
+            exclude_ids=task.get("used_account_ids", []),
+            task_id=task_id,
+        )
+
+    if not account:
+        auto_reg_enabled = str(
+            os.environ.get("NODEOPS_TASK_AUTO_REGISTER_ON_NO_ACCOUNT", "true")
+        ).strip().lower() not in {"0", "false", "no", "off"}
+        if auto_reg_enabled:
+            await _auto_register_one_account(task_id)
+            account = account_pool.acquire_account(
+                exclude_ids=task.get("used_account_ids", []),
+                task_id=task_id,
+            )
+
+    if not account:
+        raise ValueError("No available accounts")
+
+    locked_by = account.get("locked_by_task")
+    if locked_by and locked_by != task_id:
+        raise ValueError(f"Account is locked by another task: {locked_by}")
+    if not locked_by:
+        account = account_pool.update_account(account["id"], {
+            "locked_by_task": task_id,
+            "last_used_at": now_iso(),
+        }) or account
+
+    deployment_info = await _ensure_deployment(account)
+    runtime_host = deployment_info["runtime_host"]
+    project_token = deployment_info["project_token"]
+
+    next_session_index = int(task.get("session_index", 0)) + 1
+    session_data = await noc.create_session(
+        runtime_host, project_token, account["auth_token"],
+        title=f"{task_id} manual-{next_session_index}",
+    )
+    session_id = (
+        str(session_data.get("id") or "")
+        or str(session_data.get("sessionId") or "")
+        or str(session_data.get("session_id") or "")
+    ).strip()
+    if not session_id:
+        raise ValueError(f"session created but id missing: {session_data}")
+
+    used_ids = list(task.get("used_account_ids", []))
+    if account["id"] not in used_ids:
+        used_ids.append(account["id"])
+
+    update_task(project_name, task_id, {
+        "current_account_id": account["id"],
+        "current_runtime_host": runtime_host,
+        "current_project_token": project_token,
+        "current_session_id": session_id,
+        "session_index": next_session_index,
+        "used_account_ids": used_ids,
+        "error": None,
+    })
+
+    session_recorder.init_session_file(
+        project_name, task_id, account["email"], next_session_index, session_id
+    )
+
+    _emit_task_event(task_id, "session_created", {
+        "project": project_name,
+        "task_id": task_id,
+        "session_id": session_id,
+        "session_index": next_session_index,
+        "account_id": account["id"],
+        "account_email": account["email"],
+        "manual": True,
+    })
+
+    logger.info(
+        "Task %s created manual empty session %s using account %s",
+        task_id, session_id, account["email"],
+    )
+    return {
+        "project": project_name,
+        "task_id": task_id,
+        "session_id": session_id,
+        "session_index": next_session_index,
+        "session_file": f"session-{next_session_index}.md",
+        "account_id": account["id"],
+        "account_email": account["email"],
+        "account_dir": account["email"].replace("@", "_at_").replace("+", "_plus_"),
+    }
+
+
 def get_task_events(task_id: str, after_seq: int = 0) -> tuple[list[dict], int]:
     """Read buffered task events after sequence number."""
     events = _task_events.get(task_id, [])
@@ -244,6 +359,22 @@ async def _task_loop(project_name: str, task_id: str):
                 exclude_ids=task.get("used_account_ids", []),
                 task_id=task_id,
             )
+            if not account:
+                auto_reg_enabled = str(
+                    os.environ.get("NODEOPS_TASK_AUTO_REGISTER_ON_NO_ACCOUNT", "true")
+                ).strip().lower() not in {"0", "false", "no", "off"}
+                if auto_reg_enabled:
+                    update_task(project_name, task_id, {
+                        "status": "auto_registering_account",
+                        "error": None,
+                    })
+                    registered = await _auto_register_one_account(task_id)
+                    if registered:
+                        account = account_pool.acquire_account(
+                            exclude_ids=task.get("used_account_ids", []),
+                            task_id=task_id,
+                        )
+
             if not account:
                 update_task(project_name, task_id, {
                     "status": "blocked_no_account",
@@ -524,6 +655,78 @@ async def _ensure_deployment(account: dict) -> dict:
     raise Exception("Deployment did not become ready in time")
 
 
+async def _auto_register_one_account(task_id: str) -> bool:
+    """
+    Try auto-registering one account when pool has no available account.
+    Returns True when registration succeeds and account is saved to pool.
+    """
+    base_email = str(os.environ.get("NODEOPS_GMAIL", "feijidfg55@gmail.com")).strip()
+    app_password = str(
+        os.environ.get("NODEOPS_GMAIL_APP_PASSWORD", "maqk srdy ucjq bsby")
+    ).strip()
+    proxy_host = str(os.environ.get("NODEOPS_PROXY_HOST", "127.0.0.1")).strip() or "127.0.0.1"
+    proxy_type = str(os.environ.get("NODEOPS_PROXY_TYPE", "http")).strip() or "http"
+    try:
+        proxy_port = int(os.environ.get("NODEOPS_PROXY_PORT", "7897"))
+    except Exception:
+        proxy_port = 7897
+
+    if not base_email or "@" not in base_email:
+        _emit_task_event(task_id, "auto_register_failed", {"error": "NODEOPS_GMAIL is invalid"})
+        return False
+    if not app_password:
+        _emit_task_event(task_id, "auto_register_failed", {"error": "NODEOPS_GMAIL_APP_PASSWORD is empty"})
+        return False
+
+    alias = generate_gmail_aliases(base_email, 1)[0]
+    _emit_task_event(task_id, "auto_register_started", {
+        "email": alias,
+        "base_email": base_email,
+    })
+
+    try:
+        gcfg = GmailConfig(
+            email=base_email,
+            app_password=app_password,
+            proxy_host=proxy_host,
+            proxy_port=proxy_port,
+            proxy_type=proxy_type,
+            delete_best=True,
+            poll_interval_s=5.0,
+            otp_timeout_s=180,
+        )
+        rcfg = RegisterConfig(
+            redeem_credits=False,
+            create_runtime=True,
+        )
+        res = await gmail_auto_register(
+            target_email=alias,
+            gmail_cfg=gcfg,
+            reg_cfg=rcfg,
+            save_to_pool=True,
+        )
+    except Exception as exc:
+        logger.error("Task %s: auto register failed: %s", task_id, exc)
+        _emit_task_event(task_id, "auto_register_failed", {
+            "email": alias,
+            "error": str(exc),
+        })
+        return False
+
+    if not res.ok:
+        _emit_task_event(task_id, "auto_register_failed", {
+            "email": alias,
+            "error": res.error,
+        })
+        return False
+
+    _emit_task_event(task_id, "auto_register_succeeded", {
+        "email": alias,
+        "account_id": res.account_id,
+    })
+    return True
+
+
 async def _monitor_session(project_name: str, task_id: str, task: dict,
                            account: dict, runtime_host: str,
                            project_token: str, session_id: str) -> str:
@@ -543,11 +746,13 @@ async def _monitor_session(project_name: str, task_id: str, task: dict,
         "last_activity_at": last_activity_at,
         "credit_exhausted": False,
         "last_error": None,
+        "account_exhausted_marked": False,
     }
     sse_task = asyncio.create_task(
         _consume_sse_stream(
             project_name=project_name,
             task_id=task_id,
+            account_id=account.get("id"),
             account_email=account["email"],
             session_index=int(task.get("session_index", 0)),
             runtime_host=runtime_host,
@@ -577,7 +782,7 @@ async def _monitor_session(project_name: str, task_id: str, task: dict,
                 # Record new messages
                 if len(messages) > last_message_count:
                     for msg in messages[last_message_count:]:
-                        role = msg.get("role", "unknown")
+                        role = _extract_message_role(msg)
                         content = _extract_message_text(msg)
                         if str(role).lower() != "user" and _payload_indicates_credit_exhausted(msg):
                             return "credit_exhausted"
@@ -650,6 +855,7 @@ async def _monitor_session(project_name: str, task_id: str, task: dict,
 async def _consume_sse_stream(
     project_name: str,
     task_id: str,
+    account_id: str | None,
     account_email: str,
     session_index: int,
     runtime_host: str,
@@ -692,6 +898,7 @@ async def _consume_sse_stream(
                 await _flush_sse_event(
                     project_name=project_name,
                     task_id=task_id,
+                    account_id=account_id,
                     account_email=account_email,
                     session_index=session_index,
                     session_id=session_id,
@@ -711,6 +918,7 @@ async def _consume_sse_stream(
         await _flush_sse_event(
             project_name=project_name,
             task_id=task_id,
+            account_id=account_id,
             account_email=account_email,
             session_index=session_index,
             session_id=session_id,
@@ -723,6 +931,7 @@ async def _consume_sse_stream(
 async def _flush_sse_event(
     project_name: str,
     task_id: str,
+    account_id: str | None,
     account_email: str,
     session_index: int,
     session_id: str,
@@ -744,6 +953,16 @@ async def _flush_sse_event(
     # Signal credit exhaustion eagerly if SSE explicitly reports a credit/quota error.
     if _payload_indicates_credit_exhausted(payload):
         sse_state["credit_exhausted"] = True
+        if account_id and not sse_state.get("account_exhausted_marked"):
+            try:
+                account_pool.mark_account_status(account_id, "exhausted")
+                sse_state["account_exhausted_marked"] = True
+            except Exception as exc:
+                logger.warning(
+                    "Task %s: failed to mark account exhausted on SSE event: %s",
+                    task_id,
+                    exc,
+                )
 
     _emit_task_event(task_id, "runtime_sse", {
         "session_id": session_id,
@@ -896,7 +1115,7 @@ async def _sync_and_push(project_name: str, task_id: str,
 
 def _extract_message_text(msg: dict) -> str:
     """Extract readable text from a message object."""
-    # Messages may have 'content' as string or 'parts' as list
+    # Messages may have `content` as string or `parts` as list.
     if isinstance(msg.get("content"), str):
         return msg["content"]
 
@@ -908,6 +1127,40 @@ def _extract_message_text(msg: dict) -> str:
                 texts.append(part.get("text", ""))
             elif isinstance(part, str):
                 texts.append(part)
-        return "\n".join(texts)
+        joined = "\n".join([t for t in texts if str(t).strip()])
+        if joined.strip():
+            return joined
+
+    # NodeOps often puts structured errors under msg.info.error
+    info = msg.get("info")
+    if isinstance(info, dict):
+        err = info.get("error")
+        if isinstance(err, dict):
+            err_name = str(err.get("name") or "").strip()
+            err_data = err.get("data")
+            if isinstance(err_data, dict):
+                msg_text = str(err_data.get("message") or "").strip()
+                status_code = err_data.get("statusCode")
+                if msg_text:
+                    if status_code is not None and str(status_code).strip():
+                        return f"[error:{status_code}] {msg_text}"
+                    if err_name:
+                        return f"[{err_name}] {msg_text}"
+                    return msg_text
+            if err_name:
+                return f"[{err_name}]"
 
     return str(msg.get("content", msg.get("text", "")))
+
+
+def _extract_message_role(msg: dict) -> str:
+    """Extract normalized role from runtime message payload."""
+    role = msg.get("role")
+    if role:
+        return str(role).strip().lower()
+    info = msg.get("info")
+    if isinstance(info, dict):
+        info_role = info.get("role")
+        if info_role:
+            return str(info_role).strip().lower()
+    return "unknown"

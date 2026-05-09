@@ -22,7 +22,7 @@ function LoadingBar({ visible }) {
         left: 0,
         right: 0,
         height: '2px',
-        background: 'rgba(0,212,170,0.1)',
+        background: 'rgba(0,168,136,0.1)',
         overflow: 'hidden',
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.3s',
@@ -33,7 +33,7 @@ function LoadingBar({ visible }) {
       <div
         style={{
           height: '100%',
-          background: 'linear-gradient(90deg, transparent, #00d4aa, transparent)',
+          background: 'linear-gradient(90deg, transparent, #00a888, transparent)',
           width: '40%',
           animation: visible ? 'loadingSlide 1.2s ease-in-out infinite' : 'none',
         }}
@@ -64,7 +64,7 @@ function WelcomePanel() {
         style={{
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: '11px',
-          color: '#2a2a3d',
+          color: '#cbd5e1',
           lineHeight: 1.4,
           textAlign: 'center',
           letterSpacing: '0.05em',
@@ -77,7 +77,7 @@ function WelcomePanel() {
         <h2
           style={{
             fontFamily: 'JetBrains Mono, monospace',
-            color: '#9999bb',
+            color: '#334155',
             fontSize: '15px',
             fontWeight: 600,
             margin: '0 0 8px',
@@ -90,7 +90,7 @@ function WelcomePanel() {
           style={{
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '11px',
-            color: '#444460',
+            color: '#64748b',
             margin: 0,
             lineHeight: 1.7,
           }}
@@ -119,7 +119,7 @@ function WelcomePanel() {
         style={{
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: '10px',
-          color: '#222233',
+          color: '#e2e8f0',
           textAlign: 'center',
           lineHeight: 1.8,
         }}
@@ -144,12 +144,12 @@ function QuickBtn({ label, desc, accent, onClick }) {
         gap: 4,
         padding: '12px 14px',
         border: `1px solid ${hover
-          ? (accent ? 'rgba(0,212,170,0.5)' : '#3a3a50')
-          : (accent ? 'rgba(0,212,170,0.25)' : '#2a2a3d')}`,
+          ? (accent ? 'rgba(0,168,136,0.5)' : '#94a3b8')
+          : (accent ? 'rgba(0,168,136,0.25)' : '#cbd5e1')}`,
         background: hover
-          ? (accent ? 'rgba(0,212,170,0.08)' : '#1a1a25')
-          : (accent ? 'rgba(0,212,170,0.04)' : 'transparent'),
-        color: accent ? '#00d4aa' : '#666680',
+          ? (accent ? 'rgba(0,168,136,0.08)' : '#f1f5f9')
+          : (accent ? 'rgba(0,168,136,0.04)' : 'transparent'),
+        color: accent ? '#00a888' : '#4b5563',
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: '11px',
         fontWeight: 500,
@@ -158,8 +158,8 @@ function QuickBtn({ label, desc, accent, onClick }) {
         textAlign: 'left',
       }}
     >
-      <span style={{ color: accent ? '#00d4aa' : '#8888aa' }}>{label}</span>
-      <span style={{ fontSize: '10px', color: '#444460', fontWeight: 400 }}>{desc}</span>
+      <span style={{ color: accent ? '#00a888' : '#475569' }}>{label}</span>
+      <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 400 }}>{desc}</span>
     </button>
   );
 }
@@ -185,7 +185,7 @@ function ContentArea() {
         flex: 1,
         position: 'relative',
         overflow: 'hidden',
-        background: '#0a0a0f',
+        background: '#f8fafc',
       }}
     >
       <LoadingBar visible={loading} />
@@ -232,9 +232,9 @@ export default function App() {
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'Inter, sans-serif',
-        color: '#ccccee',
+        color: '#0f172a',
         height: '100vh',
-        background: '#0a0a0f',
+        background: '#f8fafc',
         overflow: 'hidden',
       }}
     >
@@ -251,44 +251,12 @@ export default function App() {
       {modalOpen === 'newProject' && <NewProjectModal />}
       {modalOpen === 'newTask'    && <NewTaskModal />}
 
-      {/* CreateOS badge */}
       <style>{`
-        #createos-badge {
-          position: fixed;
-          bottom: 40px;
-          right: 12px;
-          z-index: 9999;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 10px;
-          background: rgba(255,255,255,0.92);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(0,0,0,0.08);
-          border-radius: 999px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.10);
-          font-size: 11px;
-          font-weight: 500;
-          color: #374151;
-          text-decoration: none;
-          font-family: system-ui, sans-serif;
-        }
-        #createos-badge:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        #createos-badge img { width: 14px; height: 14px; }
         @keyframes loadingSlide {
           0%   { transform: translateX(-100%); }
           100% { transform: translateX(350%); }
         }
       `}</style>
-      <a
-        id="createos-badge"
-        href="https://createos.sh/"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <img src="https://nodeops.network/SymbolBlack.svg" alt="" />
-        Built with CreateOS
-      </a>
     </div>
   );
 }

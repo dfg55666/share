@@ -7,12 +7,13 @@ import {
 import useAppStore from '../stores/appStore';
 import useDataStore from '../stores/dataStore';
 import * as api from '../api';
+import { showToast } from './Toast';
 
 // ─── Status dot ───────────────────────────────────────────────────────────────
 function StatusDot({ status, size = 7 }) {
   const map = {
-    running:            { color: '#00d4aa', glow: '0 0 5px rgba(0,212,170,0.8)' },
-    monitoring:         { color: '#00d4aa', glow: '0 0 5px rgba(0,212,170,0.6)' },
+    running:            { color: '#00a888', glow: '0 0 5px rgba(0,168,136,0.8)' },
+    monitoring:         { color: '#00a888', glow: '0 0 5px rgba(0,168,136,0.6)' },
     pending:            { color: '#f59e0b', glow: '0 0 4px rgba(245,158,11,0.6)' },
     switching:          { color: '#f59e0b', glow: '0 0 4px rgba(245,158,11,0.5)' },
     syncing:            { color: '#4a9eff', glow: '0 0 4px rgba(74,158,255,0.5)' },
@@ -22,8 +23,8 @@ function StatusDot({ status, size = 7 }) {
     failed:             { color: '#ff6b4a', glow: '0 0 4px rgba(255,107,74,0.5)' },
     completed:          { color: '#6b7280', glow: 'none' },
     stopped:            { color: '#6b7280', glow: 'none' },
-    canceled:           { color: '#333344', glow: 'none' },
-    idle:               { color: '#333344', glow: 'none' },
+    canceled:           { color: '#94a3b8', glow: 'none' },
+    idle:               { color: '#94a3b8', glow: 'none' },
   };
   const s = map[status] || map.idle;
   const isActive = ['running', 'monitoring', 'pending', 'switching', 'syncing', 'pushing'].includes(status);
@@ -49,7 +50,7 @@ function TaskStatusIcon({ status }) {
   switch (status) {
     case 'running':
     case 'monitoring':
-      return <Play size={sz} style={{ color: '#00d4aa', flexShrink: 0 }} />;
+      return <Play size={sz} style={{ color: '#00a888', flexShrink: 0 }} />;
     case 'pending':
     case 'switching':
     case 'syncing':
@@ -63,9 +64,9 @@ function TaskStatusIcon({ status }) {
     case 'stopped':
       return <CheckCircle size={sz} style={{ color: '#6b7280', flexShrink: 0 }} />;
     case 'canceled':
-      return <Minus sz={sz} style={{ color: '#444460', flexShrink: 0 }} />;
+      return <Minus sz={sz} style={{ color: '#64748b', flexShrink: 0 }} />;
     default:
-      return <Circle size={sz} style={{ color: '#333344', flexShrink: 0 }} />;
+      return <Circle size={sz} style={{ color: '#94a3b8', flexShrink: 0 }} />;
   }
 }
 
@@ -83,7 +84,7 @@ function BlinkCursor() {
         width: 2,
         height: 13,
         marginLeft: 2,
-        background: '#00d4aa',
+        background: '#00a888',
         verticalAlign: 'middle',
         opacity: on ? 1 : 0,
         transition: 'opacity 0.1s',
@@ -93,7 +94,7 @@ function BlinkCursor() {
 }
 
 // ─── Session list (lazy-loaded per task expand) ───────────────────────────────
-function SessionList({ project, taskId, baseIndent }) {
+function SessionList({ project, taskId, baseIndent, refreshKey = 0 }) {
   const { selectedNode, setSelectedNode } = useAppStore();
   const [sessions, setSessions] = useState(null);
   const [loading, setLoading]   = useState(false);
@@ -107,15 +108,15 @@ function SessionList({ project, taskId, baseIndent }) {
       })
       .catch(() => setSessions([]))
       .finally(() => setLoading(false));
-  }, [project, taskId]);
+  }, [project, taskId, refreshKey]);
 
   const indent = baseIndent;
 
   if (loading) {
     return (
       <div style={{ paddingLeft: indent, display: 'flex', alignItems: 'center', gap: 5, padding: `3px 0 3px ${indent}px` }}>
-        <RefreshCw size={9} style={{ color: '#333344', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#333344', fontStyle: 'italic' }}>
+        <RefreshCw size={9} style={{ color: '#94a3b8', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>
           loading…
         </span>
       </div>
@@ -129,7 +130,7 @@ function SessionList({ project, taskId, baseIndent }) {
         padding: `3px 0 3px ${indent}px`,
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 10,
-        color: '#2a2a3d',
+        color: '#cbd5e1',
         fontStyle: 'italic',
       }}>
         no sessions recorded
@@ -140,8 +141,10 @@ function SessionList({ project, taskId, baseIndent }) {
   return (
     <>
       {sessions.map((s, i) => {
-        const accountEmail = s.account || s.account_email || s.email || '';
+        const accountDir   = s.account_dir || s.account || s.account_email || s.email || '';
+        const accountEmail = s.account_email || s.email || s.account || '';
         const sessionFile  = s.session_file || s.file || s.filename || `session-${i + 1}.md`;
+        const sessionId    = s.session_id || '';
         const isActive = selectedNode?.type === 'session'
           && selectedNode.project === project
           && selectedNode.taskId === taskId
@@ -150,7 +153,15 @@ function SessionList({ project, taskId, baseIndent }) {
         return (
           <button
             key={i}
-            onClick={() => setSelectedNode({ type: 'session', project, taskId, accountEmail, sessionFile })}
+            onClick={() => setSelectedNode({
+              type: 'session',
+              project,
+              taskId,
+              accountDir,
+              accountEmail,
+              sessionFile,
+              sessionId,
+            })}
             title={sessionFile}
             style={{
               width: '100%',
@@ -164,16 +175,16 @@ function SessionList({ project, taskId, baseIndent }) {
               textAlign: 'left',
               fontFamily: 'JetBrains Mono, monospace',
               fontSize: 10,
-              background: isActive ? '#1e1e2e' : 'transparent',
-              color: isActive ? '#00d4aa' : '#4a4a5e',
+              background: isActive ? '#e8f4f1' : 'transparent',
+              color: isActive ? '#00a888' : '#4a4a5e',
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.12s',
             }}
             onMouseEnter={(e) => {
               if (!isActive) {
-                e.currentTarget.style.color = '#777790';
-                e.currentTarget.style.background = 'rgba(26,26,37,0.4)';
+                e.currentTarget.style.color = '#374151';
+                e.currentTarget.style.background = 'rgba(241,245,249,0.4)';
               }
             }}
             onMouseLeave={(e) => {
@@ -201,6 +212,8 @@ function SessionList({ project, taskId, baseIndent }) {
 function TaskRow({ task, project, baseIndent }) {
   const { selectedNode, setSelectedNode } = useAppStore();
   const [open, setOpen] = useState(false);
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [sessionRefreshKey, setSessionRefreshKey] = useState(0);
 
   const taskId = task.id || task.task_id || task.taskId;
   const status = task.status || 'idle';
@@ -211,16 +224,42 @@ function TaskRow({ task, project, baseIndent }) {
 
   const subIndent = baseIndent + 18;
 
+  const createEmptySession = async (e) => {
+    e.stopPropagation();
+    if (creatingSession) return;
+    try {
+      setCreatingSession(true);
+      const res = await api.createEmptySessionForTask(project, taskId);
+      const data = res.data ?? res ?? {};
+      setSessionRefreshKey((v) => v + 1);
+      setOpen(true);
+      setSelectedNode({
+        type: 'session',
+        project,
+        taskId,
+        accountDir: data.account_dir || data.account_email || '',
+        accountEmail: data.account_email || data.account_dir || '',
+        sessionFile: data.session_file || (data.session_index ? `session-${data.session_index}.md` : ''),
+        sessionId: data.session_id || '',
+      });
+      showToast('Empty session created', 'success');
+    } catch (err) {
+      showToast(`Create session failed: ${err.message}`, 'error');
+    } finally {
+      setCreatingSession(false);
+    }
+  };
+
   return (
     <>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: isActive ? '#1e1e2e' : 'transparent',
+          background: isActive ? '#e8f4f1' : 'transparent',
           transition: 'background 0.12s',
         }}
-        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(26,26,37,0.4)'; }}
+        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(241,245,249,0.4)'; }}
         onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
       >
         {/* Expand toggle */}
@@ -236,14 +275,14 @@ function TaskRow({ task, project, baseIndent }) {
             marginLeft: baseIndent,
             background: 'none',
             border: 'none',
-            color: '#333344',
+            color: '#94a3b8',
             cursor: 'pointer',
             padding: 0,
           }}
         >
           {open
-            ? <ChevronDown size={9} style={{ color: '#555570' }} />
-            : <ChevronRight size={9} style={{ color: '#333344' }} />}
+            ? <ChevronDown size={9} style={{ color: '#6b7280' }} />
+            : <ChevronRight size={9} style={{ color: '#94a3b8' }} />}
         </button>
 
         {/* Task label */}
@@ -260,14 +299,14 @@ function TaskRow({ task, project, baseIndent }) {
             textAlign: 'left',
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 11,
-            color: isActive ? '#00d4aa' : '#6a6a88',
+            color: isActive ? '#00a888' : '#6a6a88',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             minWidth: 0,
             transition: 'color 0.12s',
           }}
-          onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#aaaacc'; }}
+          onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#1e293b'; }}
           onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = '#6a6a88'; }}
         >
           <TaskStatusIcon status={status} />
@@ -276,11 +315,40 @@ function TaskRow({ task, project, baseIndent }) {
           </span>
           {isRunning && <StatusDot status={status} size={6} />}
         </button>
+
+        <button
+          onClick={createEmptySession}
+          title={creatingSession ? 'Creating session…' : 'Create empty session'}
+          disabled={creatingSession}
+          style={{
+            flexShrink: 0,
+            width: 18,
+            height: 18,
+            marginRight: 6,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(0,168,136,0.25)',
+            background: creatingSession ? 'rgba(0,168,136,0.15)' : 'rgba(0,168,136,0.06)',
+            color: '#00a888',
+            cursor: creatingSession ? 'not-allowed' : 'pointer',
+            opacity: creatingSession ? 0.7 : 1,
+          }}
+        >
+          {creatingSession
+            ? <RefreshCw size={9} style={{ animation: 'spin 1s linear infinite' }} />
+            : <Plus size={9} />}
+        </button>
       </div>
 
       {/* Session subtree */}
       {open && (
-        <SessionList project={project} taskId={taskId} baseIndent={subIndent} />
+        <SessionList
+          project={project}
+          taskId={taskId}
+          baseIndent={subIndent}
+          refreshKey={sessionRefreshKey}
+        />
       )}
     </>
   );
@@ -317,7 +385,7 @@ function ProjectRow({ project }) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: isActive ? '#1e1e2e' : hovered ? 'rgba(26,26,37,0.5)' : 'transparent',
+          background: isActive ? '#e8f4f1' : hovered ? 'rgba(241,245,249,0.5)' : 'transparent',
           transition: 'background 0.12s',
         }}
       >
@@ -334,14 +402,14 @@ function ProjectRow({ project }) {
             paddingLeft: 8,
             background: 'none',
             border: 'none',
-            color: '#444460',
+            color: '#64748b',
             cursor: 'pointer',
             padding: '0 0 0 8px',
           }}
         >
           {open
             ? <ChevronDown size={10} style={{ color: '#6666aa' }} />
-            : <ChevronRight size={10} style={{ color: '#444460' }} />}
+            : <ChevronRight size={10} style={{ color: '#64748b' }} />}
         </button>
 
         {/* Project name */}
@@ -357,7 +425,7 @@ function ProjectRow({ project }) {
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 12,
             fontWeight: 600,
-            color: isActive ? '#00d4aa' : hovered ? '#ccccee' : '#8888aa',
+            color: isActive ? '#00a888' : hovered ? '#0f172a' : '#475569',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -366,8 +434,8 @@ function ProjectRow({ project }) {
           }}
         >
           {open
-            ? <FolderOpen  size={12} style={{ flexShrink: 0, color: isActive ? '#00d4aa' : 'rgba(0,212,170,0.5)' }} />
-            : <FolderClosed size={12} style={{ flexShrink: 0, color: isActive ? '#00d4aa' : '#555570' }} />}
+            ? <FolderOpen  size={12} style={{ flexShrink: 0, color: isActive ? '#00a888' : 'rgba(0,168,136,0.5)' }} />
+            : <FolderClosed size={12} style={{ flexShrink: 0, color: isActive ? '#00a888' : '#6b7280' }} />}
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
             {name}
           </span>
@@ -376,9 +444,9 @@ function ProjectRow({ project }) {
           {runningCount > 0 && (
             <span style={{
               fontSize: 9,
-              color: '#00d4aa',
-              background: 'rgba(0,212,170,0.12)',
-              border: '1px solid rgba(0,212,170,0.3)',
+              color: '#00a888',
+              background: 'rgba(0,168,136,0.12)',
+              border: '1px solid rgba(0,168,136,0.3)',
               padding: '0 4px',
               borderRadius: 2,
               flexShrink: 0,
@@ -401,7 +469,7 @@ function ProjectRow({ project }) {
             </span>
           )}
           {runningCount === 0 && pendingCount === 0 && taskList.length > 0 && (
-            <span style={{ fontSize: 10, color: '#333344', flexShrink: 0 }}>
+            <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>
               {taskList.length}
             </span>
           )}
@@ -424,9 +492,9 @@ function ProjectRow({ project }) {
               alignItems: 'center',
               justifyContent: 'center',
               marginRight: 4,
-              background: 'rgba(0,212,170,0.1)',
-              border: '1px solid rgba(0,212,170,0.25)',
-              color: '#00d4aa',
+              background: 'rgba(0,168,136,0.1)',
+              border: '1px solid rgba(0,168,136,0.25)',
+              color: '#00a888',
               cursor: 'pointer',
               borderRadius: 2,
               transition: 'all 0.12s',
@@ -446,7 +514,7 @@ function ProjectRow({ project }) {
               padding: '3px 0 3px 36px',
               fontFamily: 'JetBrains Mono, monospace',
               fontSize: 10,
-              color: '#2a2a3d',
+              color: '#cbd5e1',
               fontStyle: 'italic',
             }}>
               no tasks
@@ -477,8 +545,8 @@ export default function Sidebar() {
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        background: '#10101a',
-        borderRight: '1px solid #1e1e2e',
+        background: '#f0f4f8',
+        borderRight: '1px solid #e8f4f1',
         overflow: 'hidden',
       }}
     >
@@ -489,18 +557,18 @@ export default function Sidebar() {
           alignItems: 'center',
           gap: 8,
           padding: '10px 14px',
-          borderBottom: '1px solid #1e1e2e',
+          borderBottom: '1px solid #e8f4f1',
           flexShrink: 0,
         }}
       >
-        <Terminal size={13} style={{ color: '#00d4aa' }} />
+        <Terminal size={13} style={{ color: '#00a888' }} />
         <span
           style={{
             fontFamily: 'JetBrains Mono, monospace',
             fontWeight: 700,
             fontSize: 13,
             letterSpacing: '0.15em',
-            color: '#00d4aa',
+            color: '#00a888',
             textTransform: 'uppercase',
             flex: 1,
           }}
@@ -514,14 +582,14 @@ export default function Sidebar() {
           style={{
             background: 'none',
             border: 'none',
-            color: '#333344',
+            color: '#94a3b8',
             cursor: 'pointer',
             padding: 2,
             display: 'flex',
             alignItems: 'center',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#00d4aa')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#333344')}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#00a888')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
         >
           <RefreshCw size={11} />
         </button>
@@ -536,7 +604,7 @@ export default function Sidebar() {
               textAlign: 'center',
               fontFamily: 'JetBrains Mono, monospace',
               fontSize: 10,
-              color: '#2a2a3d',
+              color: '#cbd5e1',
               fontStyle: 'italic',
               lineHeight: 1.8,
             }}
@@ -551,7 +619,7 @@ export default function Sidebar() {
       </div>
 
       {/* Separator */}
-      <div style={{ height: 1, background: '#1e1e2e', margin: '0 10px' }} />
+      <div style={{ height: 1, background: '#e8f4f1', margin: '0 10px' }} />
 
       {/* Bottom actions */}
       <div style={{ padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
@@ -580,10 +648,10 @@ export default function Sidebar() {
 function SidebarAction({ icon, label, onClick, accent, info }) {
   const [hover, setHover] = useState(false);
   const color = hover
-    ? (accent ? '#00d4aa' : info ? '#4a9eff' : '#9999bb')
-    : '#555570';
+    ? (accent ? '#00a888' : info ? '#4a9eff' : '#334155')
+    : '#6b7280';
   const bg = hover
-    ? (accent ? 'rgba(0,212,170,0.07)' : info ? 'rgba(74,158,255,0.07)' : '#1a1a25')
+    ? (accent ? 'rgba(0,168,136,0.07)' : info ? 'rgba(74,158,255,0.07)' : '#f1f5f9')
     : 'transparent';
 
   return (

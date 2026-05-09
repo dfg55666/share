@@ -6,44 +6,44 @@
 
 ## Phase 1：后端基础骨架
 
-- [ ] 1.1 初始化 FastAPI 项目（main.py, requirements.txt, 目录结构）
-- [ ] 1.2 文件存储层（file_store.py）— JSON/MD 文件的读写/锁工具
-- [ ] 1.3 全局配置加载（data/config.json）
+- [x] 1.1 初始化 FastAPI 项目（main.py, requirements.txt, 目录结构）
+- [x] 1.2 文件存储层（file_store.py）— JSON/MD 文件的读写/锁工具
+- [x] 1.3 全局配置加载（data/config.json）
 
 ## Phase 2：NodeOps API 封装
 
-- [ ] 2.1 nodeops_client.py — 认证层（login, verify_otp）
-- [ ] 2.2 nodeops_client.py — 积分层（get_credits, topup）
-- [ ] 2.3 nodeops_client.py — 控制面（deployments, usage）
-- [ ] 2.4 nodeops_client.py — Runtime 层（session, message, file）
-- [ ] 2.5 SSE 客户端（connect_sse，消息流监听）
+- [x] 2.1 nodeops_client.py — 认证层（login, verify_otp）
+- [x] 2.2 nodeops_client.py — 积分层（get_credits, topup）
+- [x] 2.3 nodeops_client.py — 控制面（deployments, usage）
+- [x] 2.4 nodeops_client.py — Runtime 层（session, message, file）
+- [x] 2.5 SSE 客户端（connect_sse，消息流监听）
 
 ## Phase 3：账号与项目管理
 
-- [ ] 3.1 账号池（account_pool.py）— 增删改查、选号、锁定、释放
-- [ ] 3.2 API 路由 accounts.py — 账号 CRUD 接口
-- [ ] 3.3 项目管理（projects 路由 + git clone）
-- [ ] 3.4 API 路由 projects.py — 项目 CRUD + 文件树
+- [x] 3.1 账号池（account_pool.py）— 增删改查、选号、锁定、释放
+- [x] 3.2 API 路由 accounts.py — 账号 CRUD 接口
+- [x] 3.3 项目管理（projects 路由 + git clone）
+- [x] 3.4 API 路由 projects.py — 项目 CRUD + 文件树
 
 ## Phase 4：任务循环引擎
 
-- [ ] 4.1 task_engine.py — 状态机框架（状态流转、持久化）
-- [ ] 4.2 credit_monitor.py — 额度监控（轮询 + 多信号融合判定）
-- [ ] 4.3 session_recorder.py — SSE 消息追加写入 .md 文件
-- [ ] 4.4 workspace_sync.py — 下载 workspace + 文件覆盖 + git push
-- [ ] 4.5 完整循环流程：额度耗尽 → 同步 → push → 切号 → 新会话 → 发消息
-- [ ] 4.6 API 路由 tasks.py — 创建/启动/取消/状态查询
+- [x] 4.1 task_engine.py — 状态机框架（状态流转、持久化）
+- [x] 4.2 credit_monitor.py — 额度监控（轮询 + 多信号融合判定）
+- [x] 4.3 session_recorder.py — SSE 消息追加写入 .md 文件
+- [x] 4.4 workspace_sync.py — 下载 workspace + 文件覆盖 + git push
+- [x] 4.5 完整循环流程：额度耗尽 → 同步 → push → 切号 → 新会话 → 发消息
+- [x] 4.6 API 路由 tasks.py — 创建/启动/取消/状态查询
 
 ## Phase 5：消息与文件代理
 
-- [ ] 5.1 API 路由 sessions.py — 查看实时/历史消息
-- [ ] 5.2 API 路由 files.py — workspace 文件树 + 内容代理
-- [ ] 5.3 API 路由 events.py — SSE 转发给前端
+- [x] 5.1 API 路由 sessions.py — 查看实时/历史消息
+- [x] 5.2 API 路由 files.py — workspace 文件树 + 内容代理
+- [x] 5.3 API 路由 events.py — SSE 转发给前端
 
 ## Phase 6：Skill API
 
-- [ ] 6.1 skills.py — task/create, task/status, task/list, task/cancel
-- [ ] 6.2 skills.py — project/list, file/tree
+- [x] 6.1 skills.py — task/create, task/status, task/list, task/cancel
+- [x] 6.2 skills.py — project/list, file/tree
 - [ ] 6.3 写 Claude Code skill 定义文件
 
 ## Phase 7：前端

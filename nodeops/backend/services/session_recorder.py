@@ -40,7 +40,17 @@ def append_message(project_name: str, task_id: str,
     """Append a message to the session .md file."""
     path = session_md_path(project_name, task_id, account_email, session_index)
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    entry = f"**[{role}]** {timestamp}\n{content}\n\n"
+    norm = str(role or "unknown").strip().lower()
+    if norm == "assistant":
+        role_tag = "Assistant"
+    elif norm == "user":
+        role_tag = "User"
+    elif norm == "system":
+        role_tag = "System"
+    else:
+        role_tag = "Unknown"
+    text = str(content or "")
+    entry = f"[{role_tag}] {timestamp}\n{text}\n\n"
     append_md(path, entry)
 
 
