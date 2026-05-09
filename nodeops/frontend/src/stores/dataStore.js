@@ -59,6 +59,7 @@ const useDataStore = create((set, get) => ({
         });
         set({ tasks: grouped });
       } else {
+        // Already grouped by project name
         set({ tasks: raw });
       }
     } catch (e) {
@@ -82,7 +83,7 @@ const useDataStore = create((set, get) => ({
     return res;
   },
 
-  updateAccount: async (id, data) => {
+  editAccount: async (id, data) => {
     const res = await api.updateAccount(id, data);
     await get().fetchAccounts();
     return res;

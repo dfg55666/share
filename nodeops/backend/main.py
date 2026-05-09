@@ -19,7 +19,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.storage.file_store import ensure_data_dir
 from backend.services.nodeops_client import close_client
-from backend.api import accounts, projects, tasks, sessions, files, events, skills
+from backend.api import accounts, projects, tasks, sessions, files, events, skills, register
 
 # ─── Logging ────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -69,6 +69,7 @@ app.include_router(sessions.router)
 app.include_router(files.router)
 app.include_router(events.router)
 app.include_router(skills.router)
+app.include_router(register.router)
 
 
 @app.get("/health")

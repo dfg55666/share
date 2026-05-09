@@ -22,18 +22,20 @@ function LoadingBar({ visible }) {
         left: 0,
         right: 0,
         height: '2px',
-        background: 'rgba(0,212,170,0.15)',
+        background: 'rgba(0,212,170,0.1)',
         overflow: 'hidden',
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.3s',
+        pointerEvents: 'none',
+        zIndex: 10,
       }}
     >
       <div
         style={{
           height: '100%',
-          background: '#00d4aa',
-          width: visible ? '100%' : '0%',
-          transition: visible ? 'width 1.5s ease-out' : 'none',
+          background: 'linear-gradient(90deg, transparent, #00d4aa, transparent)',
+          width: '40%',
+          animation: visible ? 'loadingSlide 1.2s ease-in-out infinite' : 'none',
         }}
       />
     </div>
@@ -43,6 +45,7 @@ function LoadingBar({ visible }) {
 // ─── Welcome panel ────────────────────────────────────────────────────────────
 function WelcomePanel() {
   const { setModal } = useAppStore();
+
   return (
     <div
       style={{
@@ -51,93 +54,65 @@ function WelcomePanel() {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
-        gap: '24px',
+        gap: '32px',
         userSelect: 'none',
+        padding: '24px',
       }}
     >
-      <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            fontFamily: 'JetBrains Mono, monospace',
-            fontSize: '10px',
-            color: '#333344',
-            letterSpacing: '0.3em',
-            textTransform: 'uppercase',
-            marginBottom: '12px',
-          }}
-        >
-          nodeops manager
-        </div>
+      {/* ASCII-style logo */}
+      <div
+        style={{
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '11px',
+          color: '#2a2a3d',
+          lineHeight: 1.4,
+          textAlign: 'center',
+          letterSpacing: '0.05em',
+        }}
+      >
+        {`╔═══════════════════╗\n║   NODEOPS MANAGER  ║\n╚═══════════════════╝`}
+      </div>
+
+      <div style={{ textAlign: 'center', maxWidth: 360 }}>
         <h2
           style={{
             fontFamily: 'JetBrains Mono, monospace',
-            color: '#444460',
-            fontSize: '18px',
-            fontWeight: 400,
-            margin: 0,
+            color: '#9999bb',
+            fontSize: '15px',
+            fontWeight: 600,
+            margin: '0 0 8px',
+            letterSpacing: '0.05em',
           }}
         >
-          Select a project, task, or session
+          Multi-account task orchestration
         </h2>
         <p
           style={{
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '11px',
-            color: '#333344',
-            marginTop: '8px',
+            color: '#444460',
+            margin: 0,
+            lineHeight: 1.7,
           }}
         >
-          from the sidebar to get started
+          Manage NodeOps accounts, schedule AI tasks across accounts,
+          auto-switch when credits are exhausted.
         </p>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button
+      {/* Quick-start grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', maxWidth: 360 }}>
+        <QuickBtn
+          label="+ New Project"
+          desc="Create a project"
+          accent
           onClick={() => setModal('newProject')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            border: '1px solid rgba(0,212,170,0.3)',
-            background: 'rgba(0,212,170,0.05)',
-            color: '#00d4aa',
-            fontFamily: 'JetBrains Mono, monospace',
-            fontSize: '11px',
-            cursor: 'pointer',
-            transition: 'background 0.2s',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0,212,170,0.05)')}
-        >
-          + New Project
-        </button>
-        <button
+        />
+        <QuickBtn
+          label="Manage Accounts"
+          desc="Add / edit accounts"
           onClick={() => setModal('account')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            border: '1px solid #2a2a3d',
-            background: 'transparent',
-            color: '#666680',
-            fontFamily: 'JetBrains Mono, monospace',
-            fontSize: '11px',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#1a1a25';
-            e.currentTarget.style.color = '#9999bb';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#666680';
-          }}
-        >
-          Manage Accounts
-        </button>
+        />
       </div>
 
       <div
@@ -146,14 +121,46 @@ function WelcomePanel() {
           fontSize: '10px',
           color: '#222233',
           textAlign: 'center',
-          maxWidth: '300px',
-          lineHeight: '1.8',
-          whiteSpace: 'pre-line',
+          lineHeight: 1.8,
         }}
       >
-        {'// multi-account task orchestration\n// powered by nodeops agents'}
+        {'// select a project, task, or session from the sidebar'}
       </div>
     </div>
+  );
+}
+
+function QuickBtn({ label, desc, accent, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 4,
+        padding: '12px 14px',
+        border: `1px solid ${hover
+          ? (accent ? 'rgba(0,212,170,0.5)' : '#3a3a50')
+          : (accent ? 'rgba(0,212,170,0.25)' : '#2a2a3d')}`,
+        background: hover
+          ? (accent ? 'rgba(0,212,170,0.08)' : '#1a1a25')
+          : (accent ? 'rgba(0,212,170,0.04)' : 'transparent'),
+        color: accent ? '#00d4aa' : '#666680',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: '11px',
+        fontWeight: 500,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        textAlign: 'left',
+      }}
+    >
+      <span style={{ color: accent ? '#00d4aa' : '#8888aa' }}>{label}</span>
+      <span style={{ fontSize: '10px', color: '#444460', fontWeight: 400 }}>{desc}</span>
+    </button>
   );
 }
 
@@ -208,8 +215,10 @@ export default function App() {
       const projectNames = Object.keys(tasks);
       projectNames.forEach((pName) => {
         const taskList = tasks[pName] || [];
-        const hasRunning = taskList.some((t) => t.status === 'running' || t.status === 'pending');
-        if (hasRunning) fetchTasks(pName);
+        const hasActive = taskList.some((t) =>
+          ['running', 'pending', 'monitoring', 'switching', 'syncing', 'pushing'].includes(t.status)
+        );
+        if (hasActive) fetchTasks(pName);
       });
       fetchOverview();
     };
@@ -226,6 +235,7 @@ export default function App() {
         color: '#ccccee',
         height: '100vh',
         background: '#0a0a0f',
+        overflow: 'hidden',
       }}
     >
       <Toast />
@@ -265,6 +275,10 @@ export default function App() {
         }
         #createos-badge:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         #createos-badge img { width: 14px; height: 14px; }
+        @keyframes loadingSlide {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(350%); }
+        }
       `}</style>
       <a
         id="createos-badge"

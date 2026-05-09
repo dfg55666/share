@@ -1,28 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import {
   FolderOpen, FolderClosed, ChevronRight, ChevronDown,
-  Plus, Users, MessageSquare, Circle, Play, Square,
-  CheckCircle, Clock, AlertCircle, Minus, Terminal, RefreshCw,
+  Plus, Users, MessageSquare, Play,
+  CheckCircle, Clock, AlertCircle, Minus, Circle, Terminal, RefreshCw,
 } from 'lucide-react';
 import useAppStore from '../stores/appStore';
 import useDataStore from '../stores/dataStore';
 import * as api from '../api';
 
 // ─── Status dot ───────────────────────────────────────────────────────────────
-function StatusDot({ status, size = 8 }) {
+function StatusDot({ status, size = 7 }) {
   const map = {
-    running:              { color: '#00d4aa', glow: '0 0 4px rgba(0,212,170,0.7)' },
-    pending:              { color: '#f59e0b', glow: '0 0 4px rgba(245,158,11,0.5)' },
-    monitoring:           { color: '#00d4aa', glow: '0 0 4px rgba(0,212,170,0.5)' },
-    blocked:              { color: '#ff6b4a', glow: '0 0 4px rgba(255,107,74,0.5)' },
-    blocked_no_account:   { color: '#ff6b4a', glow: '0 0 4px rgba(255,107,74,0.5)' },
-    failed:               { color: '#ff6b4a', glow: '0 0 4px rgba(255,107,74,0.5)' },
-    completed:            { color: '#6b7280', glow: 'none' },
-    stopped:              { color: '#6b7280', glow: 'none' },
-    canceled:             { color: '#444460', glow: 'none' },
-    idle:                 { color: '#444460', glow: 'none' },
+    running:            { color: '#00d4aa', glow: '0 0 5px rgba(0,212,170,0.8)' },
+    monitoring:         { color: '#00d4aa', glow: '0 0 5px rgba(0,212,170,0.6)' },
+    pending:            { color: '#f59e0b', glow: '0 0 4px rgba(245,158,11,0.6)' },
+    switching:          { color: '#f59e0b', glow: '0 0 4px rgba(245,158,11,0.5)' },
+    syncing:            { color: '#4a9eff', glow: '0 0 4px rgba(74,158,255,0.5)' },
+    pushing:            { color: '#4a9eff', glow: '0 0 4px rgba(74,158,255,0.5)' },
+    blocked:            { color: '#ff6b4a', glow: '0 0 4px rgba(255,107,74,0.5)' },
+    blocked_no_account: { color: '#ff6b4a', glow: '0 0 4px rgba(255,107,74,0.5)' },
+    failed:             { color: '#ff6b4a', glow: '0 0 4px rgba(255,107,74,0.5)' },
+    completed:          { color: '#6b7280', glow: 'none' },
+    stopped:            { color: '#6b7280', glow: 'none' },
+    canceled:           { color: '#333344', glow: 'none' },
+    idle:               { color: '#333344', glow: 'none' },
   };
   const s = map[status] || map.idle;
+  const isActive = ['running', 'monitoring', 'pending', 'switching', 'syncing', 'pushing'].includes(status);
   return (
     <span
       style={{
@@ -33,6 +37,7 @@ function StatusDot({ status, size = 8 }) {
         height: size,
         background: s.color,
         boxShadow: s.glow,
+        animation: isActive ? 'pulseDot 2s ease-in-out infinite' : 'none',
       }}
     />
   );
@@ -40,12 +45,15 @@ function StatusDot({ status, size = 8 }) {
 
 // ─── Task status icon ─────────────────────────────────────────────────────────
 function TaskStatusIcon({ status }) {
-  const sz = 12;
+  const sz = 11;
   switch (status) {
     case 'running':
     case 'monitoring':
       return <Play size={sz} style={{ color: '#00d4aa', flexShrink: 0 }} />;
     case 'pending':
+    case 'switching':
+    case 'syncing':
+    case 'pushing':
       return <Clock size={sz} style={{ color: '#f59e0b', flexShrink: 0 }} />;
     case 'blocked':
     case 'blocked_no_account':
@@ -55,9 +63,9 @@ function TaskStatusIcon({ status }) {
     case 'stopped':
       return <CheckCircle size={sz} style={{ color: '#6b7280', flexShrink: 0 }} />;
     case 'canceled':
-      return <Minus size={sz} style={{ color: '#444460', flexShrink: 0 }} />;
+      return <Minus sz={sz} style={{ color: '#444460', flexShrink: 0 }} />;
     default:
-      return <Circle size={sz} style={{ color: '#444460', flexShrink: 0 }} />;
+      return <Circle size={sz} style={{ color: '#333344', flexShrink: 0 }} />;
   }
 }
 
@@ -73,7 +81,7 @@ function BlinkCursor() {
       style={{
         display: 'inline-block',
         width: 2,
-        height: 14,
+        height: 13,
         marginLeft: 2,
         background: '#00d4aa',
         verticalAlign: 'middle',
@@ -84,8 +92,8 @@ function BlinkCursor() {
   );
 }
 
-// ─── Session list (lazy loaded) ───────────────────────────────────────────────
-function SessionList({ project, taskId, indent }) {
+// ─── Session list (lazy-loaded per task expand) ───────────────────────────────
+function SessionList({ project, taskId, baseIndent }) {
   const { selectedNode, setSelectedNode } = useAppStore();
   const [sessions, setSessions] = useState(null);
   const [loading, setLoading]   = useState(false);
@@ -93,16 +101,21 @@ function SessionList({ project, taskId, indent }) {
   useEffect(() => {
     setLoading(true);
     api.getSessionHistory(project, taskId)
-      .then((res) => setSessions(Array.isArray(res.data ?? res) ? (res.data ?? res) : []))
+      .then((res) => {
+        const data = res.data ?? res;
+        setSessions(Array.isArray(data) ? data : []);
+      })
       .catch(() => setSessions([]))
       .finally(() => setLoading(false));
   }, [project, taskId]);
 
+  const indent = baseIndent;
+
   if (loading) {
     return (
-      <div style={{ paddingLeft: indent, padding: '2px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <RefreshCw size={10} style={{ color: '#333344', animation: 'spin 1s linear infinite' }} />
-        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#333344', fontStyle: 'italic' }}>
+      <div style={{ paddingLeft: indent, display: 'flex', alignItems: 'center', gap: 5, padding: `3px 0 3px ${indent}px` }}>
+        <RefreshCw size={9} style={{ color: '#333344', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#333344', fontStyle: 'italic' }}>
           loading…
         </span>
       </div>
@@ -111,8 +124,15 @@ function SessionList({ project, taskId, indent }) {
 
   if (!sessions || sessions.length === 0) {
     return (
-      <div style={{ paddingLeft: indent + 8, padding: '2px 0 2px ' + (indent + 8) + 'px', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#333344', fontStyle: 'italic' }}>
-        no sessions
+      <div style={{
+        paddingLeft: indent,
+        padding: `3px 0 3px ${indent}px`,
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 10,
+        color: '#2a2a3d',
+        fontStyle: 'italic',
+      }}>
+        no sessions recorded
       </div>
     );
   }
@@ -120,7 +140,7 @@ function SessionList({ project, taskId, indent }) {
   return (
     <>
       {sessions.map((s, i) => {
-        const accountEmail = s.account || s.account_email || '';
+        const accountEmail = s.account || s.account_email || s.email || '';
         const sessionFile  = s.session_file || s.file || s.filename || `session-${i + 1}.md`;
         const isActive = selectedNode?.type === 'session'
           && selectedNode.project === project
@@ -131,48 +151,44 @@ function SessionList({ project, taskId, indent }) {
           <button
             key={i}
             onClick={() => setSelectedNode({ type: 'session', project, taskId, accountEmail, sessionFile })}
+            title={sessionFile}
             style={{
               width: '100%',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 5,
               paddingLeft: indent,
               paddingTop: 3,
               paddingBottom: 3,
               paddingRight: 8,
               textAlign: 'left',
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: 11,
-              background: isActive ? '#222233' : 'transparent',
-              color: isActive ? '#00d4aa' : '#555570',
+              fontSize: 10,
+              background: isActive ? '#1e1e2e' : 'transparent',
+              color: isActive ? '#00d4aa' : '#4a4a5e',
               border: 'none',
               cursor: 'pointer',
-              transition: 'all 0.15s',
+              transition: 'all 0.12s',
             }}
             onMouseEnter={(e) => {
               if (!isActive) {
-                e.currentTarget.style.color = '#8888aa';
-                e.currentTarget.style.background = 'rgba(26,26,37,0.5)';
+                e.currentTarget.style.color = '#777790';
+                e.currentTarget.style.background = 'rgba(26,26,37,0.4)';
               }
             }}
             onMouseLeave={(e) => {
               if (!isActive) {
-                e.currentTarget.style.color = '#555570';
+                e.currentTarget.style.color = '#4a4a5e';
                 e.currentTarget.style.background = 'transparent';
               }
             }}
           >
-            <MessageSquare size={10} style={{ flexShrink: 0, opacity: 0.6 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {sessionFile}
+            <MessageSquare size={9} style={{ flexShrink: 0, opacity: 0.5 }} />
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {sessionFile.replace(/\.md$/, '')}
             </span>
-            {s.status && (
-              <span style={{
-                fontSize: 10,
-                color: s.status === 'running' ? '#00d4aa' : s.status === 'completed' ? '#6b7280' : '#555570',
-              }}>
-                {s.status}
-              </span>
+            {s.status === 'running' && (
+              <StatusDot status="running" size={5} />
             )}
           </button>
         );
@@ -191,19 +207,18 @@ function TaskRow({ task, project, baseIndent }) {
   const isActive = selectedNode?.type === 'task'
     && selectedNode.project === project
     && selectedNode.taskId === taskId;
+  const isRunning = ['running', 'monitoring', 'pending', 'switching', 'syncing', 'pushing'].includes(status);
 
-  const indent    = baseIndent;
-  const subIndent = baseIndent + 20;
+  const subIndent = baseIndent + 18;
 
   return (
     <>
-      {/* Row */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: isActive ? '#222233' : 'transparent',
-          transition: 'background 0.15s',
+          background: isActive ? '#1e1e2e' : 'transparent',
+          transition: 'background 0.12s',
         }}
         onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(26,26,37,0.4)'; }}
         onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
@@ -213,12 +228,12 @@ function TaskRow({ task, project, baseIndent }) {
           onClick={() => setOpen((v) => !v)}
           style={{
             flexShrink: 0,
-            width: 20,
+            width: 18,
             height: 24,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginLeft: indent,
+            marginLeft: baseIndent,
             background: 'none',
             border: 'none',
             color: '#333344',
@@ -227,8 +242,8 @@ function TaskRow({ task, project, baseIndent }) {
           }}
         >
           {open
-            ? <ChevronDown size={10} style={{ color: '#555570' }} />
-            : <ChevronRight size={10} style={{ color: '#333344' }} />}
+            ? <ChevronDown size={9} style={{ color: '#555570' }} />
+            : <ChevronRight size={9} style={{ color: '#333344' }} />}
         </button>
 
         {/* Task label */}
@@ -238,33 +253,35 @@ function TaskRow({ task, project, baseIndent }) {
             flex: 1,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 5,
             paddingTop: 3,
             paddingBottom: 3,
-            paddingRight: 8,
+            paddingRight: 6,
             textAlign: 'left',
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 11,
-            color: isActive ? '#00d4aa' : '#777790',
+            color: isActive ? '#00d4aa' : '#6a6a88',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             minWidth: 0,
-            transition: 'color 0.15s',
+            transition: 'color 0.12s',
           }}
           onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#aaaacc'; }}
-          onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = '#777790'; }}
+          onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = '#6a6a88'; }}
         >
           <TaskStatusIcon status={status} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontSize: 11 }}>
             {taskId}
           </span>
-          <StatusDot status={status} size={6} />
+          {isRunning && <StatusDot status={status} size={6} />}
         </button>
       </div>
 
       {/* Session subtree */}
-      {open && <SessionList project={project} taskId={taskId} indent={subIndent} />}
+      {open && (
+        <SessionList project={project} taskId={taskId} baseIndent={subIndent} />
+      )}
     </>
   );
 }
@@ -273,7 +290,8 @@ function TaskRow({ task, project, baseIndent }) {
 function ProjectRow({ project }) {
   const { selectedNode, setSelectedNode, setModal } = useAppStore();
   const { tasks, fetchTasks } = useDataStore();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]     = useState(false);
+  const [hovered, setHover] = useState(false);
 
   const name     = project.name || project;
   const isActive = selectedNode?.type === 'project' && selectedNode.project === name;
@@ -284,27 +302,31 @@ function ProjectRow({ project }) {
     setOpen((v) => !v);
   };
 
-  // Running task count badge
-  const runningCount = taskList.filter((t) => t.status === 'running' || t.status === 'monitoring').length;
+  const runningCount = taskList.filter((t) =>
+    ['running', 'monitoring'].includes(t.status)
+  ).length;
+  const pendingCount = taskList.filter((t) =>
+    ['pending', 'switching', 'syncing', 'pushing'].includes(t.status)
+  ).length;
 
   return (
     <>
       <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: isActive ? '#222233' : 'transparent',
-          transition: 'background 0.15s',
+          background: isActive ? '#1e1e2e' : hovered ? 'rgba(26,26,37,0.5)' : 'transparent',
+          transition: 'background 0.12s',
         }}
-        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(26,26,37,0.4)'; }}
-        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
       >
         {/* Chevron */}
         <button
           onClick={toggle}
           style={{
             flexShrink: 0,
-            width: 24,
+            width: 22,
             height: 28,
             display: 'flex',
             alignItems: 'center',
@@ -314,11 +336,12 @@ function ProjectRow({ project }) {
             border: 'none',
             color: '#444460',
             cursor: 'pointer',
+            padding: '0 0 0 8px',
           }}
         >
           {open
-            ? <ChevronDown size={11} style={{ color: '#6666aa' }} />
-            : <ChevronRight size={11} style={{ color: '#444460' }} />}
+            ? <ChevronDown size={10} style={{ color: '#6666aa' }} />
+            : <ChevronRight size={10} style={{ color: '#444460' }} />}
         </button>
 
         {/* Project name */}
@@ -329,84 +352,89 @@ function ProjectRow({ project }) {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '4px 4px 4px 0',
+            padding: '5px 2px',
             textAlign: 'left',
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 12,
-            fontWeight: 500,
-            color: isActive ? '#00d4aa' : '#9999bb',
+            fontWeight: 600,
+            color: isActive ? '#00d4aa' : hovered ? '#ccccee' : '#8888aa',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             minWidth: 0,
-            transition: 'color 0.15s',
+            transition: 'color 0.12s',
           }}
-          onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#ccccee'; }}
-          onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = '#9999bb'; }}
         >
           {open
-            ? <FolderOpen size={13} style={{ flexShrink: 0, color: 'rgba(0,212,170,0.6)' }} />
-            : <FolderClosed size={13} style={{ flexShrink: 0, color: '#555570' }} />}
+            ? <FolderOpen  size={12} style={{ flexShrink: 0, color: isActive ? '#00d4aa' : 'rgba(0,212,170,0.5)' }} />
+            : <FolderClosed size={12} style={{ flexShrink: 0, color: isActive ? '#00d4aa' : '#555570' }} />}
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
             {name}
           </span>
+
+          {/* Running badge */}
           {runningCount > 0 && (
             <span style={{
               fontSize: 9,
               color: '#00d4aa',
-              background: 'rgba(0,212,170,0.1)',
+              background: 'rgba(0,212,170,0.12)',
               border: '1px solid rgba(0,212,170,0.3)',
               padding: '0 4px',
               borderRadius: 2,
               flexShrink: 0,
+              letterSpacing: '0.05em',
             }}>
-              {runningCount} ▶
+              {runningCount}▶
             </span>
           )}
-          {runningCount === 0 && taskList.length > 0 && (
-            <span style={{ fontSize: 10, color: '#444460', flexShrink: 0 }}>
+          {runningCount === 0 && pendingCount > 0 && (
+            <span style={{
+              fontSize: 9,
+              color: '#f59e0b',
+              background: 'rgba(245,158,11,0.1)',
+              border: '1px solid rgba(245,158,11,0.25)',
+              padding: '0 4px',
+              borderRadius: 2,
+              flexShrink: 0,
+            }}>
+              {pendingCount}⏸
+            </span>
+          )}
+          {runningCount === 0 && pendingCount === 0 && taskList.length > 0 && (
+            <span style={{ fontSize: 10, color: '#333344', flexShrink: 0 }}>
               {taskList.length}
             </span>
           )}
         </button>
 
-        {/* Quick new-task button */}
-        <button
-          onClick={() => {
-            setSelectedNode({ type: 'project', project: name });
-            setModal('newTask');
-          }}
-          title="New task"
-          style={{
-            flexShrink: 0,
-            width: 22,
-            height: 22,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: 4,
-            background: 'none',
-            border: 'none',
-            color: '#333344',
-            cursor: 'pointer',
-            borderRadius: 2,
-            transition: 'all 0.15s',
-            opacity: 0,
-          }}
-          className="project-add-btn"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.color = '#00d4aa';
-            e.currentTarget.style.background = 'rgba(0,212,170,0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.opacity = '0';
-            e.currentTarget.style.color = '#333344';
-            e.currentTarget.style.background = 'none';
-          }}
-        >
-          <Plus size={11} />
-        </button>
+        {/* Quick new-task button — visible on hover */}
+        {hovered && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedNode({ type: 'project', project: name });
+              setModal('newTask');
+            }}
+            title="New task"
+            style={{
+              flexShrink: 0,
+              width: 20,
+              height: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: 4,
+              background: 'rgba(0,212,170,0.1)',
+              border: '1px solid rgba(0,212,170,0.25)',
+              color: '#00d4aa',
+              cursor: 'pointer',
+              borderRadius: 2,
+              transition: 'all 0.12s',
+            }}
+          >
+            <Plus size={10} />
+          </button>
+        )}
       </div>
 
       {/* Task children */}
@@ -414,11 +442,11 @@ function ProjectRow({ project }) {
         taskList.length === 0
           ? (
             <div style={{
-              paddingLeft: 40,
-              padding: '4px 0 4px 40px',
+              paddingLeft: 36,
+              padding: '3px 0 3px 36px',
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: 11,
-              color: '#333344',
+              fontSize: 10,
+              color: '#2a2a3d',
               fontStyle: 'italic',
             }}>
               no tasks
@@ -440,17 +468,17 @@ function ProjectRow({ project }) {
 // ─── Main Sidebar ─────────────────────────────────────────────────────────────
 export default function Sidebar() {
   const { setModal } = useAppStore();
-  const { projects } = useDataStore();
+  const { projects, fetchProjects } = useDataStore();
 
   return (
     <div
       style={{
-        width: 280,
+        width: 260,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        background: '#12121a',
-        borderRight: '1px solid #222233',
+        background: '#10101a',
+        borderRight: '1px solid #1e1e2e',
         overflow: 'hidden',
       }}
     >
@@ -460,25 +488,43 @@ export default function Sidebar() {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          padding: '10px 16px',
-          borderBottom: '1px solid #222233',
+          padding: '10px 14px',
+          borderBottom: '1px solid #1e1e2e',
           flexShrink: 0,
         }}
       >
-        <Terminal size={14} style={{ color: '#00d4aa' }} />
+        <Terminal size={13} style={{ color: '#00d4aa' }} />
         <span
           style={{
             fontFamily: 'JetBrains Mono, monospace',
             fontWeight: 700,
-            fontSize: 14,
+            fontSize: 13,
             letterSpacing: '0.15em',
             color: '#00d4aa',
             textTransform: 'uppercase',
+            flex: 1,
           }}
         >
           NodeOps
         </span>
         <BlinkCursor />
+        <button
+          onClick={fetchProjects}
+          title="Refresh"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#333344',
+            cursor: 'pointer',
+            padding: 2,
+            display: 'flex',
+            alignItems: 'center',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#00d4aa')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#333344')}
+        >
+          <RefreshCw size={11} />
+        </button>
       </div>
 
       {/* Project tree */}
@@ -486,15 +532,16 @@ export default function Sidebar() {
         {projects.length === 0 ? (
           <div
             style={{
-              padding: '24px 16px',
+              padding: '20px 16px',
               textAlign: 'center',
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: 11,
-              color: '#333344',
+              fontSize: 10,
+              color: '#2a2a3d',
               fontStyle: 'italic',
+              lineHeight: 1.8,
             }}
           >
-            no projects yet
+            {'no projects\n// create one below'}
           </div>
         ) : (
           projects.map((p, i) => (
@@ -503,19 +550,28 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Divider */}
-      <div style={{ height: 1, background: '#222233', margin: '0 12px' }} />
+      {/* Separator */}
+      <div style={{ height: 1, background: '#1e1e2e', margin: '0 10px' }} />
 
       {/* Bottom actions */}
-      <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
-        <SidebarAction icon={<Plus size={11} />} label="New Project" onClick={() => setModal('newProject')} accent />
-        <SidebarAction icon={<Users size={11} />} label="Accounts" onClick={() => setModal('account')} info />
+      <div style={{ padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+        <SidebarAction
+          icon={<Plus size={10} />}
+          label="New Project"
+          onClick={() => setModal('newProject')}
+          accent
+        />
+        <SidebarAction
+          icon={<Users size={10} />}
+          label="Manage Accounts"
+          onClick={() => setModal('account')}
+          info
+        />
       </div>
 
-      {/* Hover reveal style for add buttons */}
       <style>{`
-        .project-row:hover .project-add-btn { opacity: 1 !important; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
       `}</style>
     </div>
   );
@@ -525,8 +581,10 @@ function SidebarAction({ icon, label, onClick, accent, info }) {
   const [hover, setHover] = useState(false);
   const color = hover
     ? (accent ? '#00d4aa' : info ? '#4a9eff' : '#9999bb')
-    : '#666680';
-  const bg = hover ? (accent ? 'rgba(0,212,170,0.08)' : info ? 'rgba(74,158,255,0.08)' : '#1a1a25') : 'transparent';
+    : '#555570';
+  const bg = hover
+    ? (accent ? 'rgba(0,212,170,0.07)' : info ? 'rgba(74,158,255,0.07)' : '#1a1a25')
+    : 'transparent';
 
   return (
     <button
@@ -536,8 +594,8 @@ function SidebarAction({ icon, label, onClick, accent, info }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        padding: '6px 12px',
+        gap: 7,
+        padding: '6px 10px',
         width: '100%',
         textAlign: 'left',
         fontFamily: 'JetBrains Mono, monospace',
@@ -546,7 +604,8 @@ function SidebarAction({ icon, label, onClick, accent, info }) {
         background: bg,
         border: 'none',
         cursor: 'pointer',
-        transition: 'all 0.15s',
+        transition: 'all 0.12s',
+        borderRadius: 2,
       }}
     >
       {icon}

@@ -21,7 +21,7 @@ export default function Toast() {
   useEffect(() => {
     const handler = (toast) => {
       setToasts((prev) => [...prev, toast]);
-      setTimeout(() => remove(toast.id), 4000);
+      setTimeout(() => remove(toast.id), 4500);
     };
     listeners.add(handler);
     return () => listeners.delete(handler);
@@ -30,7 +30,18 @@ export default function Toast() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div
+      style={{
+        position: 'fixed',
+        top: 16,
+        right: 16,
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        pointerEvents: 'none',
+      }}
+    >
       {toasts.map((t) => (
         <ToastItem key={t.id} toast={t} onRemove={remove} />
       ))}
@@ -39,36 +50,60 @@ export default function Toast() {
 }
 
 function ToastItem({ toast, onRemove }) {
-  const icons = {
-    error:   <AlertTriangle size={14} className="text-warn flex-shrink-0" />,
-    success: <CheckCircle   size={14} className="text-accent flex-shrink-0" />,
-    info:    <Info          size={14} className="text-info flex-shrink-0" />,
+  const configs = {
+    error:   { icon: <AlertTriangle size={13} style={{ color: '#ff6b4a', flexShrink: 0 }} />, border: 'rgba(255,107,74,0.35)', accent: '#ff6b4a' },
+    success: { icon: <CheckCircle   size={13} style={{ color: '#00d4aa', flexShrink: 0 }} />, border: 'rgba(0,212,170,0.35)',  accent: '#00d4aa' },
+    info:    { icon: <Info          size={13} style={{ color: '#4a9eff', flexShrink: 0 }} />, border: 'rgba(74,158,255,0.35)', accent: '#4a9eff' },
   };
-
-  const borders = {
-    error:   'border-warn/30',
-    success: 'border-accent/30',
-    info:    'border-info/30',
-  };
+  const cfg = configs[toast.type] || configs.info;
 
   return (
     <div
-      className={`
-        pointer-events-auto animate-fade-in
-        flex items-start gap-2 px-3 py-2.5 min-w-[260px] max-w-[380px]
-        bg-surface-2 border ${borders[toast.type] || borders.info}
-        shadow-xl text-xs font-mono text-[#e0e0e0]
-      `}
-      style={{ borderLeft: '2px solid' }}
+      style={{
+        pointerEvents: 'auto',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 8,
+        padding: '8px 10px 8px 12px',
+        minWidth: 260,
+        maxWidth: 380,
+        background: '#1a1a25',
+        border: `1px solid ${cfg.border}`,
+        borderLeft: `3px solid ${cfg.accent}`,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: 11,
+        color: '#ccccee',
+        animation: 'fadeSlideIn 0.2s ease-out',
+      }}
     >
-      {icons[toast.type] || icons.info}
-      <span className="flex-1 leading-relaxed">{toast.message}</span>
+      {cfg.icon}
+      <span style={{ flex: 1, lineHeight: 1.5 }}>{toast.message}</span>
       <button
         onClick={() => onRemove(toast.id)}
-        className="ml-1 text-surface-4 hover:text-[#e0e0e0] transition-colors"
+        style={{
+          marginLeft: 4,
+          background: 'none',
+          border: 'none',
+          color: '#444460',
+          cursor: 'pointer',
+          padding: '1px 2px',
+          display: 'flex',
+          alignItems: 'center',
+          flexShrink: 0,
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = '#ccccee')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = '#444460')}
       >
-        <X size={12} />
+        <X size={11} />
       </button>
+
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateX(16px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 }

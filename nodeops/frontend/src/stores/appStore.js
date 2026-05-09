@@ -11,8 +11,8 @@ const useAppStore = create((set) => ({
   modalOpen: null, // 'account' | 'newProject' | 'newTask' | null
 
   setSelectedNode: (node) => set({ selectedNode: node }),
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  setModal: (modal) => set({ modalOpen: modal }),
+  setSidebarOpen:  (open) => set({ sidebarOpen: open }),
+  setModal:        (modal) => set({ modalOpen: modal }),
 }));
 
 export default useAppStore;
