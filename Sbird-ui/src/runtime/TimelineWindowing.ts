@@ -1,19 +1,9 @@
 import type { UiTimelineItem } from "../api/contracts";
+import { sortTimelineItems } from "../domain/timeline/sort";
 
 export const DEFAULT_TIMELINE_WINDOW_LIMIT = 200;
 export const TIMELINE_WINDOW_PAGE_SIZE = 200;
 export const MAX_TIMELINE_WINDOW_LIMIT = 2000;
-
-function sortTimelineItems(items: UiTimelineItem[]): UiTimelineItem[] {
-  return [...items].sort((left, right) => {
-    const leftSeq = typeof left.displaySeq === "number" ? left.displaySeq : Number.MAX_SAFE_INTEGER;
-    const rightSeq = typeof right.displaySeq === "number" ? right.displaySeq : Number.MAX_SAFE_INTEGER;
-    if (leftSeq !== rightSeq) {
-      return leftSeq - rightSeq;
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
 
 function shouldKeepOutOfWindow(item: UiTimelineItem): boolean {
   // Keep in-progress items so they can continue receiving deltas.

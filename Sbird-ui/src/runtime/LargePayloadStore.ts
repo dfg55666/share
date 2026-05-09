@@ -39,9 +39,11 @@ export async function putLargePayload(params: {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_LARGE_PAYLOAD, "readwrite");
       const store = tx.objectStore(STORE_LARGE_PAYLOAD);
-      const req = store.put(row);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error ?? new Error("indexedDB put failed"));
+      store.put(row);
+      // Wait for tx.oncomplete (not req.onsuccess) to guarantee durability.
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("indexedDB put failed"));
+      tx.onabort = () => reject(tx.error ?? new Error("indexedDB put aborted"));
     });
     return { ok: true };
   } catch (error) {

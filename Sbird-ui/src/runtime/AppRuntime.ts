@@ -4,8 +4,10 @@ import {
   fromSnapshot,
   isCountableHistoryItem,
   normalizeTimelineItem,
+  sortTimelineItems,
   type TimelineMutableState,
 } from "../domain/timeline";
+import { evictStaleCaches } from "./ThreadTimelineCache";
 import type {
   ThreadSendMode,
   ThreadSummary,
@@ -92,18 +94,7 @@ function timelineFromSnapshot(snapshot: UiTimelineSnapshot): TimelineMutableStat
   return fromSnapshot(snapshot);
 }
 
-function sortTimelineItems(items: UiTimelineItem[]): UiTimelineItem[] {
-  return [...items].sort((left, right) => {
-    const leftSeq =
-      typeof left.displaySeq === "number" ? left.displaySeq : Number.MAX_SAFE_INTEGER;
-    const rightSeq =
-      typeof right.displaySeq === "number" ? right.displaySeq : Number.MAX_SAFE_INTEGER;
-    if (leftSeq !== rightSeq) {
-      return leftSeq - rightSeq;
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
+// sortTimelineItems is now imported from domain/timeline
 
 function sortPendingRequests(requests: UiServerRequest[]): UiServerRequest[] {
   return [...requests].sort((left, right) => {
@@ -293,6 +284,9 @@ export class AppRuntime {
         this.liveSync.connectStreamAndRefreshRun(runId, options),
       getThreadSyncPhase: (threadId) => this.getThreadSyncPhase(threadId),
     });
+
+    // Best-effort cache eviction on startup — clears expired / overflowing threads.
+    void evictStaleCaches();
   }
 
   public setThreadTurnOverrides(

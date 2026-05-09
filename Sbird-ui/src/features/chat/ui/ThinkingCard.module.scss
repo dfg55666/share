@@ -1,74 +1,86 @@
 // ThinkingCard.module.scss
+// 极简内联折叠行风格 — 无背景、无边框、无卡片容器
 
-.container {
-  background: var(--sb-bg-gray);
-  border-radius: var(--sb-radius-md);
-  overflow: hidden;
-  border: 1px solid var(--sb-border-light);
+.thinkingInline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 12px; // 与正文内容的间距
 }
 
-.header {
+// ── 折叠行 ──────────────────────────────────────────
+.toggleRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
+  gap: 6px;
   cursor: pointer;
-  transition: background var(--sb-transition-fast);
   user-select: none;
+  padding: 4px 0;
+  // 无背景
 
-  &:hover {
-    background: var(--sb-border-light);
+  &:hover .toggleText {
+    color: var(--sb-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sb-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
-.headerTitle {
+.circleIcon {
+  color: var(--sb-primary);
   font-size: 14px;
-  font-weight: 600;
-  color: var(--sb-text-primary);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toggleText {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sb-text-secondary);
+  transition: color var(--sb-transition-fast);
 }
 
 .chevron {
-  color: var(--sb-text-secondary);
-  transition: transform var(--sb-transition-normal);
+  color: var(--sb-text-muted);
   display: flex;
   align-items: center;
+  margin-left: 2px;
 }
 
 .chevronExpanded {
-  transform: rotate(180deg);
+  // chevron 图标已通过 ChevronUp/Down 切换，无需 rotate
 }
 
-.body {
-  border-top: 1px solid var(--sb-border-light);
-  padding: 12px 16px 14px;
+// ── 展开步骤列表 ────────────────────────────────────
+.stepList {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  padding: 8px 0 4px 6px; // 左缩进与圆点对齐
+}
+
+.stepItem {
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
 }
 
-.step {
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sb-primary);
+  flex-shrink: 0;
+  margin-top: 7px; // 视觉对齐文本行中线
+}
+
+.stepText {
   font-size: 13px;
   color: var(--sb-text-secondary);
   line-height: 1.7;
-  margin: 0;
-
-  & + & {
-    padding-top: 6px;
-    border-top: 1px dashed var(--sb-border-light);
-  }
-}
-
-.toolsSection {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.toolsLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--sb-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  word-break: break-word;
+  white-space: pre-wrap;
 }

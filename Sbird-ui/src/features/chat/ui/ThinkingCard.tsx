@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import ToolCallCard from './ToolCallCard';
 import styles from './ThinkingCard.module.scss';
 
@@ -36,6 +36,7 @@ export default function ThinkingCard({
   defaultExpanded = false,
 }: ThinkingCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+
   const orderedItems: ThinkingItem[] =
     items ??
     [
@@ -43,31 +44,40 @@ export default function ThinkingCard({
       ...(toolCalls ?? []).map((tool) => ({ type: 'tool' as const, ...tool })),
     ];
 
+  const count = orderedItems.length;
+
+  const toggle = () => setExpanded((prev) => !prev);
+
   return (
-    <div className={styles.container}>
+    <div className={styles.thinkingInline}>
+      {/* 折叠行 */}
       <div
-        className={styles.header}
-        onClick={() => setExpanded((prev) => !prev)}
+        className={styles.toggleRow}
+        onClick={toggle}
         role="button"
         aria-expanded={expanded}
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setExpanded((prev) => !prev);
+            toggle();
           }
         }}
       >
-        <span className={styles.headerTitle}>思考过程与工具调用</span>
+        <span className={styles.circleIcon}>◎</span>
+        <span className={styles.toggleText}>
+          思考了 {count} 步
+        </span>
         <span
           className={`${styles.chevron} ${expanded ? styles.chevronExpanded : ''}`}
         >
-          <ChevronDown size={16} />
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </span>
       </div>
 
+      {/* 展开内容 */}
       {expanded && (
-        <div className={styles.body}>
+        <div className={styles.stepList}>
           {orderedItems.map((item, i) =>
             item.type === 'tool' ? (
               <ToolCallCard
@@ -77,9 +87,10 @@ export default function ThinkingCard({
                 status={item.status}
               />
             ) : (
-              <p key={`step-${i}`} className={styles.step}>
-                {item.text}
-              </p>
+              <div key={`step-${i}`} className={styles.stepItem}>
+                <span className={styles.dot} />
+                <span className={styles.stepText}>{item.text}</span>
+              </div>
             ),
           )}
         </div>

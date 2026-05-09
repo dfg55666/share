@@ -6,8 +6,10 @@ import type {
   UiTimelineSnapshot,
   UiThreadRuntime,
 } from "../../api/contracts";
+import { sortTimelineItems } from "./sort";
 
 export type { UiTimelineEvent, UiTimelineItem, UiTimelineSnapshot } from "../../api/contracts";
+export { sortTimelineItems } from "./sort";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -743,16 +745,7 @@ export function normalizeTimelineItem(input: unknown): UiTimelineItem {
   };
 }
 
-function sortTimelineItems(items: UiTimelineItem[]): UiTimelineItem[] {
-  return [...items].sort((left, right) => {
-    const leftSeq = typeof left.displaySeq === "number" ? left.displaySeq : Number.MAX_SAFE_INTEGER;
-    const rightSeq = typeof right.displaySeq === "number" ? right.displaySeq : Number.MAX_SAFE_INTEGER;
-    if (leftSeq !== rightSeq) {
-      return leftSeq - rightSeq;
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
+// sortTimelineItems is now imported from ./sort.ts
 
 function sortRequests(requests: UiServerRequest[]): UiServerRequest[] {
   return [...requests].sort((left, right) => {
