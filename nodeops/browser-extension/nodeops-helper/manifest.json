@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "NodeOps Helper",
+  "version": "0.1.0",
+  "description": "Step 1: clear NodeOps login state (cookies/storage/cache).",
+  "permissions": [
+    "browsingData",
+    "scripting",
+    "storage",
+    "cookies",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.nodeops.network/*",
+    "https://*.nodeops.xyz/*",
+    "https://*.syra.nodeops.app/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "NodeOps Helper",
+    "default_popup": "popup.html"
+  }
+}
