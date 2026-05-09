@@ -13,7 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 def _load() -> list[dict]:
-    return read_json(accounts_path())
+    data = read_json(accounts_path())
+    if isinstance(data, list):
+        return [item for item in data if isinstance(item, dict)]
+    return []
 
 
 def _save(accounts: list[dict]):
@@ -28,6 +31,10 @@ def list_accounts() -> list[dict]:
         safe = {**acc}
         if safe.get("auth_token"):
             safe["auth_token_preview"] = safe["auth_token"][:20] + "..."
+            safe["auth_token"] = ""
+        if safe.get("project_token"):
+            safe["project_token_preview"] = safe["project_token"][:20] + "..."
+            safe["project_token"] = ""
         result.append(safe)
     return result
 

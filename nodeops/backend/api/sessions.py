@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from backend.services import nodeops_client as noc
 from backend.services import account_pool
 from backend.storage.file_store import (
-    session_md_path, read_md, DATA_DIR,
+    read_md,
 )
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -38,6 +38,8 @@ async def get_messages(session_id: str, account_id: str):
     acc = account_pool.get_account(account_id)
     if not acc:
         raise HTTPException(404, "Account not found")
+    if not acc.get("runtime_host") or not acc.get("project_token"):
+        raise HTTPException(400, "Account has no active deployment")
 
     data = await noc.get_messages(
         acc["runtime_host"], acc["project_token"], acc["auth_token"], session_id
@@ -51,6 +53,8 @@ async def send_message(session_id: str, account_id: str, req: SendMessageRequest
     acc = account_pool.get_account(account_id)
     if not acc:
         raise HTTPException(404, "Account not found")
+    if not acc.get("runtime_host") or not acc.get("project_token"):
+        raise HTTPException(400, "Account has no active deployment")
 
     data = await noc.send_message(
         acc["runtime_host"], acc["project_token"], acc["auth_token"],
@@ -65,6 +69,8 @@ async def abort_session(session_id: str, account_id: str):
     acc = account_pool.get_account(account_id)
     if not acc:
         raise HTTPException(404, "Account not found")
+    if not acc.get("runtime_host") or not acc.get("project_token"):
+        raise HTTPException(400, "Account has no active deployment")
 
     data = await noc.abort_session(
         acc["runtime_host"], acc["project_token"], acc["auth_token"], session_id

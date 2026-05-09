@@ -5,6 +5,16 @@ import logging
 import signal
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+# Support both:
+#   1) uvicorn backend.main:app   (cwd = nodeops/)
+#   2) uvicorn main:app           (cwd = nodeops/backend/)
+THIS_DIR = Path(__file__).resolve().parent
+PARENT_DIR = THIS_DIR.parent
+if str(PARENT_DIR) not in sys.path:
+    sys.path.insert(0, str(PARENT_DIR))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.storage.file_store import ensure_data_dir

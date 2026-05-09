@@ -22,16 +22,29 @@ async def download_workspace(runtime_host: str, project_token: str,
     logger.info(f"Downloading workspace from {runtime_host} to {target_dir}")
 
     tree = await noc.get_file_tree(runtime_host, project_token, auth_token, base_path)
-
-    # tree is expected to be a list of entries, each with name/type
-    entries = tree if isinstance(tree, list) else tree.get("files", tree.get("entries", []))
+    entries = []
+    if isinstance(tree, list):
+        entries = [entry for entry in tree if isinstance(entry, dict)]
+    elif isinstance(tree, dict):
+        raw_entries = tree.get("files") or tree.get("entries") or tree.get("children") or []
+        if isinstance(raw_entries, list):
+            entries = [entry for entry in raw_entries if isinstance(entry, dict)]
 
     for entry in entries:
-        name = entry.get("name", "")
-        entry_type = entry.get("type", "file")
-        entry_path = f"{base_path}/{name}".lstrip("/") if base_path else name
+        if entry.get("ignored"):
+            continue
 
-        if entry_type == "directory" or entry_type == "dir":
+        name = entry.get("name", "")
+        entry_path = str(entry.get("path") or "").strip().lstrip("/")
+        if not entry_path:
+            entry_path = f"{base_path}/{name}".lstrip("/") if base_path else name
+        if not entry_path:
+            continue
+
+        entry_type = str(entry.get("type", "file")).lower()
+        is_dir = entry_type in ("directory", "dir", "folder", "tree")
+
+        if is_dir:
             # Recurse into directory
             (target_dir / entry_path).mkdir(parents=True, exist_ok=True)
             await download_workspace(runtime_host, project_token, auth_token,

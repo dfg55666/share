@@ -31,7 +31,8 @@ class LoginRequest(BaseModel):
 
 class VerifyOTPRequest(BaseModel):
     email: str
-    code: str
+    otp: str | None = None
+    code: str | None = None
 
 
 @router.get("")
@@ -106,11 +107,27 @@ async def login(req: LoginRequest):
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyOTPRequest):
     """Verify OTP and get auth token."""
-    result = await noc.verify_otp(req.email, req.code)
+    otp = (req.otp or req.code or "").strip()
+    if not otp:
+        raise HTTPException(400, "otp is required")
+
+    result = await noc.verify_otp(req.email, otp)
     # Auto-save token to account if it exists
     acc = account_pool.get_account_by_email(req.email)
+    if not acc:
+        try:
+            acc = account_pool.add_account(email=req.email)
+        except ValueError:
+            acc = account_pool.get_account_by_email(req.email)
     if acc:
-        token = result.get("token", result.get("auth_token", ""))
+        data = result.get("data", {}) if isinstance(result, dict) else {}
+        token = (
+            (result.get("token") if isinstance(result, dict) else None)
+            or (result.get("auth_token") if isinstance(result, dict) else None)
+            or (data.get("token") if isinstance(data, dict) else None)
+            or (data.get("auth_token") if isinstance(data, dict) else None)
+            or ""
+        )
         if token:
             account_pool.update_account(acc["id"], {"auth_token": token})
     return {"success": True, "data": result}

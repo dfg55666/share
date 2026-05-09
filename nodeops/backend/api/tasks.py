@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from backend.services import task_engine
+from backend.services import account_pool
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -9,7 +10,8 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 class CreateTaskRequest(BaseModel):
     project: str
     mode: str = "auto"  # auto | oneshot
-    message: str
+    message: str | None = None
+    prompt: str | None = None
     max_loops: int = 10
     task_id: str | None = None
 
@@ -23,13 +25,13 @@ class UpdateTaskRequest(BaseModel):
 
 @router.get("")
 def list_all_tasks():
-    tasks = task_engine.list_all_tasks()
+    tasks = [_decorate_task(t) for t in task_engine.list_all_tasks()]
     return {"success": True, "data": tasks}
 
 
 @router.get("/project/{project_name}")
 def list_project_tasks(project_name: str):
-    tasks = task_engine.list_tasks(project_name)
+    tasks = [_decorate_task(t) for t in task_engine.list_tasks(project_name)]
     return {"success": True, "data": tasks}
 
 
@@ -38,20 +40,23 @@ def get_task(project_name: str, task_id: str):
     task = task_engine.get_task(project_name, task_id)
     if not task:
         raise HTTPException(404, "Task not found")
-    return {"success": True, "data": task}
+    return {"success": True, "data": _decorate_task(task)}
 
 
 @router.post("")
 def create_task(req: CreateTaskRequest):
     try:
+        message = (req.message or req.prompt or "").strip()
+        if not message:
+            raise ValueError("message or prompt is required")
         task = task_engine.create_task(
             project_name=req.project,
             mode=req.mode,
-            message=req.message,
+            message=message,
             max_loops=req.max_loops,
             task_id=req.task_id,
         )
-        return {"success": True, "data": task}
+        return {"success": True, "data": _decorate_task(task)}
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -62,7 +67,7 @@ def update_task(project_name: str, task_id: str, req: UpdateTaskRequest):
     task = task_engine.update_task(project_name, task_id, updates)
     if not task:
         raise HTTPException(404, "Task not found")
-    return {"success": True, "data": task}
+    return {"success": True, "data": _decorate_task(task)}
 
 
 @router.delete("/{project_name}/{task_id}")
@@ -92,3 +97,24 @@ def get_task_messages(project_name: str, task_id: str):
     """Get cached messages for an active task."""
     messages = task_engine.get_task_messages(task_id)
     return {"success": True, "data": messages}
+
+
+def _decorate_task(task: dict) -> dict:
+    """Attach frontend-friendly derived fields without mutating stored task."""
+    item = {**task}
+
+    accounts = []
+    acc_id = item.get("current_account_id")
+    if acc_id:
+        acc = account_pool.get_account(acc_id)
+        if acc:
+            accounts.append({
+                "id": acc.get("id"),
+                "email": acc.get("email"),
+                "status": acc.get("status"),
+                "credits": acc.get("credits_remaining"),
+            })
+    item["accounts"] = accounts
+    item["current_loop"] = item.get("loop_count", 0)
+    item["progress"] = item.get("loops", [])
+    return item

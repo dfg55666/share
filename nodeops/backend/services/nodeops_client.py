@@ -1,16 +1,19 @@
 """
 NodeOps CreateOS API client.
 
-Four-layer architecture:
+Layered API:
   1. Auth       — oneclick-backend.nodeops.xyz
   2. Credits    — api-createos.nodeops.network
   3. Control    — stage-vibe-coder-api.nodeops.xyz
   4. Runtime    — dynamic *.orak.nodeops.app
 """
-import httpx
 import asyncio
 import logging
-from typing import AsyncIterator
+import time
+from typing import Any, AsyncIterator
+from urllib.parse import quote
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +21,14 @@ AUTH_BASE = "https://oneclick-backend.nodeops.xyz/api/v1"
 CREDITS_BASE = "https://api-createos.nodeops.network/v1"
 CONTROL_BASE = "https://stage-vibe-coder-api.nodeops.xyz/api/v1"
 
+DEFAULT_CREDIT_SKU_ID = "00000000-0000-0000-0000-000000000007"
+
 COMMON_HEADERS = {
     "Content-Type": "application/json",
     "ReferralURL": "https://nodeops.network",
+    "Accept": "application/json, text/plain, */*",
 }
 
-# Shared httpx client (reuse connections)
 _client: httpx.AsyncClient | None = None
 
 
@@ -41,165 +46,293 @@ async def close_client():
         _client = None
 
 
-# ─── Helpers ────────────────────────────────────────────────────────
-
-def _auth_headers(auth_token: str) -> dict:
+def _auth_headers(auth_token: str) -> dict[str, str]:
     return {**COMMON_HEADERS, "X-Auth-Token": auth_token}
 
 
-def _runtime_headers(project_token: str, auth_token: str) -> dict:
+def _runtime_headers(project_token: str, auth_token: str) -> dict[str, str]:
+    # Runtime API requires x-project-token. For y-gg-token, frontend shows mixed behavior;
+    # auth token is more stable for backend usage.
     return {
         "Content-Type": "application/json",
+        "Accept": "*/*",
         "x-project-token": project_token,
         "y-gg-token": auth_token,
     }
 
 
+def _runtime_base(runtime_host_or_url: str) -> str:
+    value = str(runtime_host_or_url or "").strip().rstrip("/")
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    return f"https://{value}"
+
+
+def _unwrap_data(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        data = payload.get("data")
+        if data is not None:
+            return data
+    return payload
+
+
+def _parse_json(resp: httpx.Response) -> Any:
+    if not resp.content:
+        return {}
+    try:
+        return resp.json()
+    except ValueError:
+        return {"raw_text": resp.text}
+
+
 async def _retry_request(method: str, url: str, retries: int = 3, **kwargs) -> httpx.Response:
-    """Execute HTTP request with exponential backoff retry on 5xx."""
+    """
+    Execute request with retry for transient failures.
+    Retries on network errors, 429 and 5xx.
+    """
     client = get_client()
-    last_exc = None
+    last_exc: Exception | None = None
     for attempt in range(retries):
         try:
             resp = await client.request(method, url, **kwargs)
-            if resp.status_code < 500:
+            if resp.status_code < 500 and resp.status_code != 429:
                 return resp
-            last_exc = Exception(f"HTTP {resp.status_code}: {resp.text[:200]}")
-            logger.warning(f"Retry {attempt+1}/{retries} for {method} {url}: {resp.status_code}")
-        except httpx.HTTPError as e:
-            last_exc = e
-            logger.warning(f"Retry {attempt+1}/{retries} for {method} {url}: {e}")
+            last_exc = RuntimeError(f"HTTP {resp.status_code}: {resp.text[:400]}")
+            logger.warning(
+                "Retry %s/%s for %s %s: %s",
+                attempt + 1, retries, method, url, resp.status_code
+            )
+        except httpx.HTTPError as exc:
+            last_exc = exc
+            logger.warning(
+                "Retry %s/%s for %s %s: %s",
+                attempt + 1, retries, method, url, exc
+            )
         if attempt < retries - 1:
             await asyncio.sleep(2 ** attempt)
+    if last_exc is None:
+        last_exc = RuntimeError(f"Request failed without response: {method} {url}")
     raise last_exc
 
 
 # ─── 1. Auth Layer ──────────────────────────────────────────────────
 
 async def login(email: str) -> dict:
-    """POST /api/v1/login — trigger OTP email."""
-    resp = await _retry_request("POST", f"{AUTH_BASE}/login",
-                                headers=COMMON_HEADERS,
-                                json={"email": email})
+    """
+    POST /api/v1/login — trigger OTP.
+    Captured payload includes {"email", "from":"createos"}.
+    """
+    resp = await _retry_request(
+        "POST",
+        f"{AUTH_BASE}/login",
+        headers=COMMON_HEADERS,
+        json={"email": email, "from": "createos"},
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return payload if isinstance(payload, dict) else {"data": payload}
 
 
-async def verify_otp(email: str, code: str) -> dict:
-    """POST /api/v1/login/verify — verify OTP, returns auth_token."""
-    resp = await _retry_request("POST", f"{AUTH_BASE}/login/verify",
-                                headers=COMMON_HEADERS,
-                                json={"email": email, "code": code})
+async def verify_otp(email: str, otp: str) -> dict:
+    """
+    POST /api/v1/login/verify — verify otp.
+    Captured payload uses key "otp".
+    """
+    resp = await _retry_request(
+        "POST",
+        f"{AUTH_BASE}/login/verify",
+        headers=COMMON_HEADERS,
+        json={"email": email, "otp": otp},
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return payload if isinstance(payload, dict) else {"data": payload}
 
 
 # ─── 2. Credits Layer ───────────────────────────────────────────────
 
 async def get_credits(auth_token: str) -> dict:
-    """GET /v1/credits — returns credit balance. Has intermittent 500s, retried."""
-    resp = await _retry_request("GET", f"{CREDITS_BASE}/credits",
-                                headers=_auth_headers(auth_token))
+    resp = await _retry_request(
+        "GET",
+        f"{CREDITS_BASE}/credits",
+        headers=_auth_headers(auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return payload if isinstance(payload, dict) else {"data": payload}
 
 
 async def get_topup_settings(auth_token: str) -> dict:
-    resp = await _retry_request("GET", f"{CREDITS_BASE}/credits/openrouter/topup-settings",
-                                headers=_auth_headers(auth_token))
+    resp = await _retry_request(
+        "GET",
+        f"{CREDITS_BASE}/credits/openrouter/topup-settings",
+        headers=_auth_headers(auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return payload if isinstance(payload, dict) else {"data": payload}
 
 
 async def topup_credits(auth_token: str, payload: dict) -> dict:
-    resp = await _retry_request("POST", f"{CREDITS_BASE}/credits/openrouter",
-                                headers=_auth_headers(auth_token),
-                                json=payload)
+    resp = await _retry_request(
+        "POST",
+        f"{CREDITS_BASE}/credits/openrouter",
+        headers=_auth_headers(auth_token),
+        json=payload,
+    )
     resp.raise_for_status()
-    return resp.json()
+    data = _parse_json(resp)
+    return data if isinstance(data, dict) else {"data": data}
 
 
-async def get_credit_conversion_rate(auth_token: str) -> dict:
-    resp = await _retry_request("GET", f"{CREDITS_BASE}/payments/credit-conversion-rate",
-                                headers=_auth_headers(auth_token))
+async def get_credit_conversion_rate(
+    auth_token: str,
+    sku_id: str = DEFAULT_CREDIT_SKU_ID,
+    amount: int = 1,
+    payment_method: str = "checkout",
+) -> dict:
+    resp = await _retry_request(
+        "GET",
+        f"{CREDITS_BASE}/payments/credit-conversion-rate",
+        headers=_auth_headers(auth_token),
+        params={
+            "skuId": sku_id,
+            "creditMultiplier": 1,
+            "amount": amount,
+            "paymentMethod": payment_method,
+        },
+    )
     resp.raise_for_status()
-    return resp.json()
+    data = _parse_json(resp)
+    return data if isinstance(data, dict) else {"data": data}
 
 
 async def get_credit_skus(auth_token: str) -> dict:
-    resp = await _retry_request("GET", f"{CREDITS_BASE}/skus/credit",
-                                headers=_auth_headers(auth_token))
+    resp = await _retry_request(
+        "GET",
+        f"{CREDITS_BASE}/skus/credit",
+        headers=_auth_headers(auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    data = _parse_json(resp)
+    return data if isinstance(data, dict) else {"data": data}
 
 
 # ─── 3. Control Plane ───────────────────────────────────────────────
 
 async def list_deployments(auth_token: str) -> dict:
-    """GET /api/v1/deployments — list all deployments."""
-    resp = await _retry_request("GET", f"{CONTROL_BASE}/deployments",
-                                headers=_auth_headers(auth_token))
+    resp = await _retry_request(
+        "GET",
+        f"{CONTROL_BASE}/deployments",
+        headers=_auth_headers(auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    data = _parse_json(resp)
+    return data if isinstance(data, dict) else {"data": data}
 
 
 async def create_deployment(auth_token: str) -> dict:
-    """POST /api/v1/deployments/pi-agent — create new deployment (201)."""
-    resp = await _retry_request("POST", f"{CONTROL_BASE}/deployments/pi-agent",
-                                headers=_auth_headers(auth_token),
-                                json={})
-    if resp.status_code not in (200, 201):
-        resp.raise_for_status()
-    return resp.json()
+    """
+    Prefer latest endpoint /deployments/pi-agent.
+    """
+    headers = _auth_headers(auth_token)
+    try:
+        resp = await _retry_request(
+            "POST",
+            f"{CONTROL_BASE}/deployments/pi-agent",
+            headers=headers,
+            json={},
+        )
+        if resp.status_code not in (200, 201, 202):
+            resp.raise_for_status()
+        data = _parse_json(resp)
+        return data if isinstance(data, dict) else {"data": data}
+    except Exception as pi_agent_exc:
+        # Backward compatibility fallback used by earlier captures/scripts.
+        logger.warning("create_deployment via /pi-agent failed, fallback to /deployments: %s", pi_agent_exc)
+        resp = await _retry_request(
+            "POST",
+            f"{CONTROL_BASE}/deployments",
+            headers=headers,
+            json={"prompt": "init"},
+        )
+        if resp.status_code not in (200, 201, 202):
+            resp.raise_for_status()
+        data = _parse_json(resp)
+        return data if isinstance(data, dict) else {"data": data}
 
 
 async def get_deployment(auth_token: str, deployment_id: str) -> dict:
-    """GET /api/v1/deployments/{id} — get deployment details (runtime_host, project_token)."""
-    resp = await _retry_request("GET", f"{CONTROL_BASE}/deployments/{deployment_id}",
-                                headers=_auth_headers(auth_token))
+    resp = await _retry_request(
+        "GET",
+        f"{CONTROL_BASE}/deployments/{deployment_id}",
+        headers=_auth_headers(auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    data = _parse_json(resp)
+    return data if isinstance(data, dict) else {"data": data}
 
 
 async def get_usage(auth_token: str) -> dict:
-    """GET /api/v1/usage — get usage/quota info."""
-    resp = await _retry_request("GET", f"{CONTROL_BASE}/usage",
-                                headers=_auth_headers(auth_token))
+    resp = await _retry_request(
+        "GET",
+        f"{CONTROL_BASE}/usage",
+        headers=_auth_headers(auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    data = _parse_json(resp)
+    return data if isinstance(data, dict) else {"data": data}
 
 
-# ─── 4. Runtime Layer (dynamic host) ────────────────────────────────
+# ─── 4. Runtime Layer ───────────────────────────────────────────────
 
-async def create_session(runtime_host: str, project_token: str, auth_token: str,
-                         title: str | None = None, model: str | None = None) -> dict:
-    """POST /session — create a new chat session."""
-    body = {}
+async def create_session(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    title: str | None = None,
+    model: str | None = None,
+) -> dict:
+    body: dict[str, Any] = {}
     if title:
         body["title"] = title
     if model:
         body["model"] = model
-    resp = await _retry_request("POST", f"https://{runtime_host}/session",
-                                headers=_runtime_headers(project_token, auth_token),
-                                json=body)
+    resp = await _retry_request(
+        "POST",
+        f"{_runtime_base(runtime_host)}/session",
+        headers=_runtime_headers(project_token, auth_token),
+        json=body,
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    unwrapped = _unwrap_data(payload)
+    return unwrapped if isinstance(unwrapped, dict) else (payload if isinstance(payload, dict) else {"data": payload})
 
 
-async def list_sessions(runtime_host: str, project_token: str, auth_token: str) -> dict:
-    """GET /session — list all sessions."""
-    resp = await _retry_request("GET", f"https://{runtime_host}/session",
-                                headers=_runtime_headers(project_token, auth_token))
+async def list_sessions(runtime_host: str, project_token: str, auth_token: str) -> Any:
+    resp = await _retry_request(
+        "GET",
+        f"{_runtime_base(runtime_host)}/session",
+        headers=_runtime_headers(project_token, auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def send_message(runtime_host: str, project_token: str, auth_token: str,
-                       session_id: str, text: str,
-                       no_reply: bool = False, system: str | None = None,
-                       model: str | None = None) -> dict:
-    """POST /session/{id}/message — send a message."""
-    body = {
+async def send_message(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    session_id: str,
+    text: str,
+    no_reply: bool = False,
+    system: str | None = None,
+    model: str | None = None,
+    agent: str | None = None,
+) -> Any:
+    body: dict[str, Any] = {
         "parts": [{"type": "text", "text": text}],
         "noReply": no_reply,
     }
@@ -207,65 +340,98 @@ async def send_message(runtime_host: str, project_token: str, auth_token: str,
         body["system"] = system
     if model:
         body["model"] = model
-    resp = await _retry_request("POST",
-                                f"https://{runtime_host}/session/{session_id}/message",
-                                headers=_runtime_headers(project_token, auth_token),
-                                json=body)
+    if agent:
+        body["agent"] = agent
+
+    resp = await _retry_request(
+        "POST",
+        f"{_runtime_base(runtime_host)}/session/{session_id}/message",
+        headers=_runtime_headers(project_token, auth_token),
+        json=body,
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def get_messages(runtime_host: str, project_token: str, auth_token: str,
-                       session_id: str) -> dict:
-    """GET /session/{id}/message — pull messages."""
-    resp = await _retry_request("GET",
-                                f"https://{runtime_host}/session/{session_id}/message",
-                                headers=_runtime_headers(project_token, auth_token))
+async def get_messages(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    session_id: str,
+) -> Any:
+    resp = await _retry_request(
+        "GET",
+        f"{_runtime_base(runtime_host)}/session/{session_id}/message",
+        headers=_runtime_headers(project_token, auth_token),
+        params={"_": int(time.time() * 1000)},
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def get_session_context(runtime_host: str, project_token: str, auth_token: str,
-                              session_id: str) -> dict:
-    resp = await _retry_request("GET",
-                                f"https://{runtime_host}/session/{session_id}/context",
-                                headers=_runtime_headers(project_token, auth_token))
+async def get_session_context(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    session_id: str,
+) -> Any:
+    resp = await _retry_request(
+        "GET",
+        f"{_runtime_base(runtime_host)}/session/{session_id}/context",
+        headers=_runtime_headers(project_token, auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def get_subagents(runtime_host: str, project_token: str, auth_token: str,
-                        session_id: str) -> dict:
-    resp = await _retry_request("GET",
-                                f"https://{runtime_host}/session/{session_id}/subagents",
-                                headers=_runtime_headers(project_token, auth_token))
+async def get_subagents(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    session_id: str,
+) -> Any:
+    resp = await _retry_request(
+        "GET",
+        f"{_runtime_base(runtime_host)}/session/{session_id}/subagents",
+        headers=_runtime_headers(project_token, auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def abort_session(runtime_host: str, project_token: str, auth_token: str,
-                        session_id: str) -> dict:
-    """POST /session/{id}/abort — abort current generation."""
-    resp = await _retry_request("POST",
-                                f"https://{runtime_host}/session/{session_id}/abort",
-                                headers=_runtime_headers(project_token, auth_token),
-                                json={})
+async def abort_session(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    session_id: str,
+) -> Any:
+    resp = await _retry_request(
+        "POST",
+        f"{_runtime_base(runtime_host)}/session/{session_id}/abort",
+        headers=_runtime_headers(project_token, auth_token),
+        json={},
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def connect_sse(runtime_host: str, token: str,
-                      session_id: str) -> AsyncIterator[str]:
-    """GET /session/{id}/event?token=... — SSE stream.
-
-    Yields raw SSE lines. Caller parses event/data.
-    """
-    url = f"https://{runtime_host}/session/{session_id}/event?token={token}"
+async def connect_sse(runtime_host: str, token: str, session_id: str) -> AsyncIterator[str]:
+    url = f"{_runtime_base(runtime_host)}/session/{session_id}/event?token={quote(token, safe='')}"
     client = get_client()
-    async with client.stream("GET", url, headers={
-        "Accept": "text/event-stream",
-        "Cache-Control": "no-cache",
-    }, timeout=None) as resp:
+    async with client.stream(
+        "GET",
+        url,
+        headers={
+            "Accept": "text/event-stream",
+            "Cache-Control": "no-cache",
+        },
+        timeout=None,
+    ) as resp:
         resp.raise_for_status()
         async for line in resp.aiter_lines():
             yield line
@@ -273,46 +439,68 @@ async def connect_sse(runtime_host: str, token: str,
 
 # ─── Runtime: File operations ───────────────────────────────────────
 
-async def get_file_tree(runtime_host: str, project_token: str, auth_token: str,
-                        path: str = "") -> dict:
-    """GET /file?path=... — get directory listing."""
-    resp = await _retry_request("GET", f"https://{runtime_host}/file",
-                                headers=_runtime_headers(project_token, auth_token),
-                                params={"path": path})
+async def get_file_tree(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    path: str = "",
+) -> Any:
+    resp = await _retry_request(
+        "GET",
+        f"{_runtime_base(runtime_host)}/file",
+        headers=_runtime_headers(project_token, auth_token),
+        params={"path": path},
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def get_file_content(runtime_host: str, project_token: str, auth_token: str,
-                           path: str) -> bytes:
-    """GET /file/content?path=... — get file content as bytes."""
-    resp = await _retry_request("GET", f"https://{runtime_host}/file/content",
-                                headers=_runtime_headers(project_token, auth_token),
-                                params={"path": path})
+async def get_file_content(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    path: str,
+) -> bytes:
+    resp = await _retry_request(
+        "GET",
+        f"{_runtime_base(runtime_host)}/file/content",
+        headers=_runtime_headers(project_token, auth_token),
+        params={"path": path},
+    )
     resp.raise_for_status()
-    return resp.content
+    return bytes(resp.content)
 
 
-async def get_file_status(runtime_host: str, project_token: str, auth_token: str) -> dict:
-    """GET /file/status — get workspace file status."""
-    resp = await _retry_request("GET", f"https://{runtime_host}/file/status",
-                                headers=_runtime_headers(project_token, auth_token))
+async def get_file_status(runtime_host: str, project_token: str, auth_token: str) -> Any:
+    resp = await _retry_request(
+        "GET",
+        f"{_runtime_base(runtime_host)}/file/status",
+        headers=_runtime_headers(project_token, auth_token),
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)
 
 
-async def get_health(runtime_host: str) -> dict:
-    """GET /health — runtime health check."""
-    resp = await _retry_request("GET", f"https://{runtime_host}/health")
+async def get_health(runtime_host: str) -> Any:
+    resp = await _retry_request("GET", f"{_runtime_base(runtime_host)}/health")
     resp.raise_for_status()
-    return resp.json()
+    return _parse_json(resp)
 
 
-async def request_preview(runtime_host: str, project_token: str, auth_token: str,
-                          port: int = 8080) -> dict:
-    """POST /preview — request preview URL."""
-    resp = await _retry_request("POST", f"https://{runtime_host}/preview",
-                                headers=_runtime_headers(project_token, auth_token),
-                                json={"port": port})
+async def request_preview(
+    runtime_host: str,
+    project_token: str,
+    auth_token: str,
+    port: int = 8080,
+) -> Any:
+    resp = await _retry_request(
+        "POST",
+        f"{_runtime_base(runtime_host)}/preview",
+        headers=_runtime_headers(project_token, auth_token),
+        json={"port": port},
+    )
     resp.raise_for_status()
-    return resp.json()
+    payload = _parse_json(resp)
+    return _unwrap_data(payload)

@@ -8,11 +8,11 @@ Auto mode: credit exhausted → sync workspace → git push → switch account �
 Oneshot mode: credit exhausted → blocked
 """
 import asyncio
-import uuid
 import json
+import uuid
 import logging
-from datetime import datetime, timezone
-from pathlib import Path
+import time
+from typing import Any
 from backend.storage.file_store import (
     task_json, tasks_dir, project_json, read_json, write_json, now_iso,
 )
@@ -30,8 +30,13 @@ _active_tasks: dict[str, asyncio.Task] = {}
 # Message cache for active sessions: task_id -> list of message dicts
 _message_cache: dict[str, list[dict]] = {}
 
+# Task event cache for SSE forwarding: task_id -> [{seq,type,data,at}]
+_task_events: dict[str, list[dict[str, Any]]] = {}
+_task_event_seq: dict[str, int] = {}
+
 # SSE stop events: task_id -> asyncio.Event
 _stop_events: dict[str, asyncio.Event] = {}
+_EVENT_BUFFER_LIMIT = 500
 
 
 # ─── Task CRUD ──────────────────────────────────────────────────────
@@ -39,6 +44,14 @@ _stop_events: dict[str, asyncio.Event] = {}
 def create_task(project_name: str, mode: str, message: str,
                 max_loops: int = 10, task_id: str | None = None) -> dict:
     """Create a new task definition."""
+    normalized_mode = str(mode or "").strip().lower()
+    if normalized_mode not in ("auto", "oneshot"):
+        raise ValueError("mode must be one of: auto | oneshot")
+    if not str(message or "").strip():
+        raise ValueError("message cannot be empty")
+    if int(max_loops) <= 0:
+        raise ValueError("max_loops must be > 0")
+
     tid = task_id or f"task-{str(uuid.uuid4())[:8]}"
 
     # Ensure project exists
@@ -49,7 +62,7 @@ def create_task(project_name: str, mode: str, message: str,
     task = {
         "id": tid,
         "project": project_name,
-        "mode": mode,
+        "mode": normalized_mode,
         "status": "pending",
         "message": message,
         "current_account_id": None,
@@ -84,9 +97,25 @@ def update_task(project_name: str, task_id: str, updates: dict) -> dict | None:
     task = get_task(project_name, task_id)
     if not task:
         return None
+    prev_status = task.get("status")
+    prev_error = task.get("error")
     task.update(updates)
     task["updated_at"] = now_iso()
     write_json(task_json(project_name, task_id), task)
+
+    if task.get("status") != prev_status:
+        _emit_task_event(task_id, "status", {
+            "status": task.get("status"),
+            "project": project_name,
+            "task_id": task_id,
+            "loop_count": task.get("loop_count", 0),
+        })
+    if task.get("error") and task.get("error") != prev_error:
+        _emit_task_event(task_id, "error", {
+            "project": project_name,
+            "task_id": task_id,
+            "error": task.get("error"),
+        })
     return task
 
 
@@ -134,9 +163,15 @@ async def start_task(project_name: str, task_id: str):
 
     _stop_events[task_id] = asyncio.Event()
     _message_cache[task_id] = []
+    _task_events[task_id] = []
+    _task_event_seq[task_id] = 0
 
     async_task = asyncio.create_task(_task_loop(project_name, task_id))
     _active_tasks[task_id] = async_task
+    _emit_task_event(task_id, "task_started", {
+        "project": project_name,
+        "task_id": task_id,
+    })
     logger.info(f"Started task loop: {task_id}")
 
 
@@ -155,6 +190,10 @@ async def cancel_task(project_name: str, task_id: str):
         if task.get("current_account_id"):
             account_pool.release_account(task["current_account_id"])
         update_task(project_name, task_id, {"status": "canceled"})
+    _emit_task_event(task_id, "task_canceled", {
+        "project": project_name,
+        "task_id": task_id,
+    })
     logger.info(f"Canceled task: {task_id}")
 
 
@@ -165,6 +204,15 @@ def get_task_messages(task_id: str) -> list[dict]:
 
 def is_task_running(task_id: str) -> bool:
     return task_id in _active_tasks and not _active_tasks[task_id].done()
+
+
+def get_task_events(task_id: str, after_seq: int = 0) -> tuple[list[dict], int]:
+    """Read buffered task events after sequence number."""
+    events = _task_events.get(task_id, [])
+    if not events:
+        return [], _task_event_seq.get(task_id, 0)
+    filtered = [ev for ev in events if int(ev.get("seq", 0)) > int(after_seq)]
+    return filtered, _task_event_seq.get(task_id, 0)
 
 
 # ─── Main Task Loop ─────────────────────────────────────────────────
@@ -180,7 +228,7 @@ async def _task_loop(project_name: str, task_id: str):
             if not task:
                 break
 
-            if task["loop_count"] >= task["max_loops"]:
+            if int(task.get("loop_count", 0)) >= int(task.get("max_loops", 10)):
                 update_task(project_name, task_id, {
                     "status": "stopped",
                     "error": f"Reached max loops ({task['max_loops']})"
@@ -228,16 +276,31 @@ async def _task_loop(project_name: str, task_id: str):
 
             # ── Step 3: Create session ──
             try:
+                loop_index = int(task.get("loop_count", 0)) + 1
                 session_data = await noc.create_session(
                     runtime_host, project_token, account["auth_token"],
-                    title=f"{task_id} loop-{task['loop_count'] + 1}"
+                    title=f"{task_id} loop-{loop_index}"
                 )
-                session_id = session_data.get("id", session_data.get("sessionId", ""))
+                session_id = (
+                    str(session_data.get("id") or "")
+                    or str(session_data.get("sessionId") or "")
+                    or str(session_data.get("session_id") or "")
+                ).strip()
+                if not session_id:
+                    raise RuntimeError(f"session created but id missing: {session_data}")
                 task["session_index"] = task.get("session_index", 0) + 1
                 update_task(project_name, task_id, {
                     "current_session_id": session_id,
                     "session_index": task["session_index"],
                     "status": "running",
+                })
+                _emit_task_event(task_id, "session_created", {
+                    "project": project_name,
+                    "task_id": task_id,
+                    "session_id": session_id,
+                    "session_index": task["session_index"],
+                    "account_id": account["id"],
+                    "account_email": account["email"],
                 })
             except Exception as e:
                 logger.error(f"Task {task_id}: create session failed: {e}")
@@ -264,6 +327,12 @@ async def _task_loop(project_name: str, task_id: str):
                     project_name, task_id, account["email"],
                     task["session_index"], "User", task["message"]
                 )
+                _emit_task_event(task_id, "message", {
+                    "role": "user",
+                    "content": task["message"],
+                    "session_id": session_id,
+                    "session_index": task["session_index"],
+                })
             except Exception as e:
                 if credit_monitor.is_credit_error(str(e)):
                     logger.info(f"Task {task_id}: credit exhausted on send")
@@ -284,6 +353,7 @@ async def _task_loop(project_name: str, task_id: str):
                     break
 
             # ── Step 5: Monitor session ──
+            update_task(project_name, task_id, {"status": "monitoring"})
             end_reason = await _monitor_session(
                 project_name, task_id, task, account,
                 runtime_host, project_token, session_id
@@ -291,13 +361,31 @@ async def _task_loop(project_name: str, task_id: str):
 
             if end_reason == "completed":
                 # Task completed normally
-                await _sync_and_push(project_name, task_id, task, account, "completed")
+                commit_hash = await _sync_and_push(project_name, task_id, task, account, "completed")
                 session_recorder.finalize_session(
                     project_name, task_id, account["email"],
                     task["session_index"], "completed"
                 )
+
+                loops = task.get("loops", [])
+                loops.append({
+                    "index": int(task.get("loop_count", 0)) + 1,
+                    "account_email": account["email"],
+                    "session_id": task.get("current_session_id"),
+                    "started_at": task.get("updated_at"),
+                    "ended_at": now_iso(),
+                    "end_reason": "completed",
+                    "git_commit": commit_hash,
+                })
+
                 account_pool.release_account(account["id"])
-                update_task(project_name, task_id, {"status": "completed"})
+                update_task(project_name, task_id, {
+                    "status": "completed",
+                    "loop_count": int(task.get("loop_count", 0)) + 1,
+                    "loops": loops,
+                    "current_account_id": None,
+                    "current_session_id": None,
+                })
                 break
 
             elif end_reason == "credit_exhausted":
@@ -336,6 +424,33 @@ async def _ensure_deployment(account: dict) -> dict:
     """Make sure an account has an active deployment. Returns {runtime_host, project_token}."""
     auth_token = account["auth_token"]
 
+    def _pick_runtime_host(detail: dict) -> str:
+        host = (
+            detail.get("runtimeHost")
+            or detail.get("runtime_host")
+            or detail.get("server_endpoint")
+            or detail.get("endpoint")
+            or detail.get("host")
+            or ""
+        )
+        host = str(host).strip().rstrip("/")
+        if host.startswith("https://"):
+            host = host[len("https://"):]
+        elif host.startswith("http://"):
+            host = host[len("http://"):]
+        return host
+
+    def _pick_project_token(detail: dict) -> str:
+        token = detail.get("projectToken") or detail.get("project_token") or detail.get("token") or ""
+        return str(token).strip()
+
+    def _pick_deployment_id(detail: dict) -> str:
+        dep_id = detail.get("id") or detail.get("deploymentId") or detail.get("deployment_id") or ""
+        return str(dep_id).strip()
+
+    def _as_dict(data: object) -> dict:
+        return data if isinstance(data, dict) else {}
+
     # If account already has deployment info, verify it
     if account.get("runtime_host") and account.get("project_token"):
         try:
@@ -348,22 +463,30 @@ async def _ensure_deployment(account: dict) -> dict:
             logger.info(f"Existing deployment unhealthy for {account['email']}, creating new")
 
     # List existing deployments
-    deployments = await noc.list_deployments(auth_token)
-    deploy_list = deployments if isinstance(deployments, list) else deployments.get("deployments", [])
+    deployments_payload = await noc.list_deployments(auth_token)
+    deploy_list: list[dict] = []
+    if isinstance(deployments_payload, list):
+        deploy_list = [x for x in deployments_payload if isinstance(x, dict)]
+    elif isinstance(deployments_payload, dict):
+        payload_data = _as_dict(deployments_payload.get("data")) if "data" in deployments_payload else deployments_payload
+        raw_list = payload_data.get("deployments") or payload_data.get("items") or payload_data.get("list") or []
+        if isinstance(raw_list, list):
+            deploy_list = [x for x in raw_list if isinstance(x, dict)]
 
     if deploy_list:
-        # Use the first active deployment
         dep = deploy_list[0]
-        dep_id = dep.get("id", dep.get("deploymentId", ""))
-        dep_detail = await noc.get_deployment(auth_token, dep_id)
+        dep_id = _pick_deployment_id(dep)
+        runtime_host = _pick_runtime_host(dep)
+        project_token = _pick_project_token(dep)
 
-        runtime_host = dep_detail.get("runtimeHost", dep_detail.get("runtime_host",
-                       dep_detail.get("host", dep_detail.get("endpoint", ""))))
-        project_token = dep_detail.get("projectToken", dep_detail.get("project_token",
-                        dep_detail.get("token", "")))
+        # If list item misses runtime/token, fetch detail.
+        if dep_id and (not runtime_host or not project_token):
+            dep_detail_payload = await noc.get_deployment(auth_token, dep_id)
+            dep_detail = dep_detail_payload if isinstance(dep_detail_payload, dict) else {}
+            runtime_host = runtime_host or _pick_runtime_host(dep_detail)
+            project_token = project_token or _pick_project_token(dep_detail)
 
         if runtime_host and project_token:
-            # Cache on account
             account_pool.update_account(account["id"], {
                 "deployment_id": dep_id,
                 "runtime_host": runtime_host,
@@ -372,19 +495,21 @@ async def _ensure_deployment(account: dict) -> dict:
             return {"runtime_host": runtime_host, "project_token": project_token}
 
     # Create new deployment
-    new_dep = await noc.create_deployment(auth_token)
-    dep_id = new_dep.get("id", new_dep.get("deploymentId", ""))
+    new_dep_payload = await noc.create_deployment(auth_token)
+    new_dep = new_dep_payload if isinstance(new_dep_payload, dict) else {}
+    dep_id = _pick_deployment_id(new_dep)
+    if not dep_id and isinstance(new_dep_payload, dict):
+        nested = _as_dict(new_dep_payload.get("data"))
+        dep_id = _pick_deployment_id(nested)
     if not dep_id:
-        raise Exception(f"No deployment ID in response: {new_dep}")
+        raise Exception(f"No deployment ID in response: {new_dep_payload}")
 
     # Poll until deployment is ready
-    for _ in range(30):
-        dep_detail = await noc.get_deployment(auth_token, dep_id)
-        runtime_host = dep_detail.get("runtimeHost", dep_detail.get("runtime_host",
-                       dep_detail.get("host", dep_detail.get("endpoint", ""))))
-        project_token = dep_detail.get("projectToken", dep_detail.get("project_token",
-                        dep_detail.get("token", "")))
-        status = dep_detail.get("status", "")
+    for _ in range(24):
+        dep_detail_payload = await noc.get_deployment(auth_token, dep_id)
+        dep_detail = dep_detail_payload if isinstance(dep_detail_payload, dict) else {}
+        runtime_host = _pick_runtime_host(dep_detail)
+        project_token = _pick_project_token(dep_detail)
 
         if runtime_host and project_token:
             account_pool.update_account(account["id"], {
@@ -394,7 +519,7 @@ async def _ensure_deployment(account: dict) -> dict:
             })
             return {"runtime_host": runtime_host, "project_token": project_token}
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(5.0)
 
     raise Exception("Deployment did not become ready in time")
 
@@ -402,82 +527,282 @@ async def _ensure_deployment(account: dict) -> dict:
 async def _monitor_session(project_name: str, task_id: str, task: dict,
                            account: dict, runtime_host: str,
                            project_token: str, session_id: str) -> str:
-    """Monitor a running session by polling messages.
+    """Monitor a running session with SSE + polling fallback.
 
     Returns: "completed" | "credit_exhausted" | "error" | "canceled"
     """
     auth_token = account["auth_token"]
-    idle_count = 0
     last_message_count = 0
     poll_interval = 5  # seconds
+    idle_timeout_seconds = 120
+    transient_errors = 0
+    last_credit_check_at = 0.0
+    last_activity_at = time.monotonic()
+    sse_state: dict[str, Any] = {
+        "connected": False,
+        "last_activity_at": last_activity_at,
+        "credit_exhausted": False,
+        "last_error": None,
+    }
+    sse_task = asyncio.create_task(
+        _consume_sse_stream(
+            project_name=project_name,
+            task_id=task_id,
+            account_email=account["email"],
+            session_index=int(task.get("session_index", 0)),
+            runtime_host=runtime_host,
+            project_token=project_token,
+            session_id=session_id,
+            sse_state=sse_state,
+        )
+    )
 
-    while True:
-        if _stop_events.get(task_id, asyncio.Event()).is_set():
-            return "canceled"
-
-        try:
-            # Pull messages
-            messages_data = await noc.get_messages(
-                runtime_host, project_token, auth_token, session_id
-            )
-            messages = messages_data if isinstance(messages_data, list) else \
-                       messages_data.get("messages", [])
-
-            # Cache messages
-            _message_cache[task_id] = messages
-
-            # Record new messages
-            if len(messages) > last_message_count:
-                for msg in messages[last_message_count:]:
-                    role = msg.get("role", "unknown")
-                    content = _extract_message_text(msg)
-                    session_recorder.append_message(
-                        project_name, task_id, account["email"],
-                        task["session_index"], role, content
-                    )
-                last_message_count = len(messages)
-                idle_count = 0
-            else:
-                idle_count += 1
-
-            # Check if AI is done (no new messages for idle_timeout)
-            # idle_timeout = 120s / poll_interval = 24 polls
-            if idle_count > 24 and last_message_count > 1:
-                # Verify it's not credit exhaustion
-                credit_status = await credit_monitor.check_credits(
-                    auth_token, account["id"]
-                )
-                if credit_status["exhausted"]:
-                    return "credit_exhausted"
-                else:
-                    return "completed"
-
-        except Exception as e:
-            error_str = str(e)
-            if credit_monitor.is_credit_error(error_str):
+    try:
+        while True:
+            if _stop_events.get(task_id, asyncio.Event()).is_set():
+                return "canceled"
+            if sse_state.get("credit_exhausted"):
                 return "credit_exhausted"
-            logger.error(f"Task {task_id} monitor error: {e}")
-            # Transient error — retry a few times
-            idle_count += 1
-            if idle_count > 10:
-                update_task(project_name, task_id, {
-                    "status": "failed",
-                    "error": f"Monitor failed: {e}"
-                })
-                return "error"
 
-        # Check credits periodically (every 6 polls = ~30s)
-        if idle_count % 6 == 0 and idle_count > 0:
             try:
-                credit_status = await credit_monitor.check_credits(
-                    auth_token, account["id"]
+                # Pull messages as fallback (SSE may disconnect/transiently stall)
+                messages_data = await noc.get_messages(
+                    runtime_host, project_token, auth_token, session_id
                 )
-                if credit_status["exhausted"]:
-                    return "credit_exhausted"
-            except Exception:
-                pass
+                messages = _normalize_messages(messages_data)
 
-        await asyncio.sleep(poll_interval)
+                # Cache messages
+                _message_cache[task_id] = messages
+
+                # Record new messages
+                if len(messages) > last_message_count:
+                    for msg in messages[last_message_count:]:
+                        role = msg.get("role", "unknown")
+                        content = _extract_message_text(msg)
+                        if str(role).lower() != "user" and _payload_indicates_credit_exhausted(msg):
+                            return "credit_exhausted"
+                        session_recorder.append_message(
+                            project_name, task_id, account["email"],
+                            task["session_index"], role, content
+                        )
+                        _emit_task_event(task_id, "message", {
+                            "session_id": session_id,
+                            "session_index": task.get("session_index", 0),
+                            "role": role,
+                            "content": content,
+                            "raw": msg,
+                        })
+                    last_message_count = len(messages)
+                    last_activity_at = time.monotonic()
+                    transient_errors = 0
+                else:
+                    sse_last = float(sse_state.get("last_activity_at", 0.0) or 0.0)
+                    effective_activity = max(last_activity_at, sse_last)
+                    if (
+                        last_message_count > 1
+                        and (time.monotonic() - effective_activity) >= idle_timeout_seconds
+                    ):
+                        credit_status = await credit_monitor.check_credits(
+                            auth_token, account["id"]
+                        )
+                        if credit_status["exhausted"]:
+                            return "credit_exhausted"
+                        return "completed"
+
+            except Exception as e:
+                error_str = str(e)
+                if credit_monitor.is_credit_error(error_str):
+                    return "credit_exhausted"
+                logger.error(f"Task {task_id} monitor error: {e}")
+                transient_errors += 1
+                if transient_errors > 10:
+                    update_task(project_name, task_id, {
+                        "status": "failed",
+                        "error": f"Monitor failed: {e}"
+                    })
+                    return "error"
+
+            # Check credits periodically (about every 30s)
+            now = time.monotonic()
+            if (now - last_credit_check_at) >= 30:
+                last_credit_check_at = now
+                try:
+                    credit_status = await credit_monitor.check_credits(
+                        auth_token, account["id"]
+                    )
+                    if credit_status["exhausted"]:
+                        return "credit_exhausted"
+                except Exception:
+                    pass
+
+            await asyncio.sleep(poll_interval)
+    finally:
+        if not sse_task.done():
+            sse_task.cancel()
+        try:
+            await sse_task
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.debug("SSE consumer finished with error: %s", e)
+
+
+async def _consume_sse_stream(
+    project_name: str,
+    task_id: str,
+    account_email: str,
+    session_index: int,
+    runtime_host: str,
+    project_token: str,
+    session_id: str,
+    sse_state: dict[str, Any],
+):
+    """Consume runtime SSE, append raw stream to session record, and emit task events."""
+    event_name = "message"
+    data_lines: list[str] = []
+
+    async for line in noc.connect_sse(runtime_host, project_token, session_id):
+        if _stop_events.get(task_id, asyncio.Event()).is_set():
+            break
+
+        sse_state["connected"] = True
+        sse_state["last_activity_at"] = time.monotonic()
+
+        if line is None:
+            continue
+        line = str(line)
+
+        if line.startswith(":"):
+            # SSE comment / heartbeat line
+            session_recorder.append_raw_sse(
+                project_name, task_id, account_email, session_index, line
+            )
+            continue
+
+        if line.startswith("event:"):
+            event_name = line.split(":", 1)[1].strip() or "message"
+            continue
+
+        if line.startswith("data:"):
+            data_lines.append(line.split(":", 1)[1].lstrip())
+            continue
+
+        if line.strip() == "":
+            if data_lines:
+                await _flush_sse_event(
+                    project_name=project_name,
+                    task_id=task_id,
+                    account_email=account_email,
+                    session_index=session_index,
+                    session_id=session_id,
+                    event_name=event_name,
+                    data_text="\n".join(data_lines),
+                    sse_state=sse_state,
+                )
+                data_lines.clear()
+                event_name = "message"
+            continue
+
+        # Unknown line type: preserve as data to avoid loss.
+        data_lines.append(line)
+
+    # Flush trailing event, if any.
+    if data_lines:
+        await _flush_sse_event(
+            project_name=project_name,
+            task_id=task_id,
+            account_email=account_email,
+            session_index=session_index,
+            session_id=session_id,
+            event_name=event_name,
+            data_text="\n".join(data_lines),
+            sse_state=sse_state,
+        )
+
+
+async def _flush_sse_event(
+    project_name: str,
+    task_id: str,
+    account_email: str,
+    session_index: int,
+    session_id: str,
+    event_name: str,
+    data_text: str,
+    sse_state: dict[str, Any],
+):
+    raw_chunk = f"event: {event_name}\ndata: {data_text}\n"
+    session_recorder.append_raw_sse(
+        project_name, task_id, account_email, session_index, raw_chunk
+    )
+
+    payload: Any = data_text
+    try:
+        payload = json.loads(data_text)
+    except Exception:
+        pass
+
+    # Signal credit exhaustion eagerly if SSE explicitly reports a credit/quota error.
+    if _payload_indicates_credit_exhausted(payload):
+        sse_state["credit_exhausted"] = True
+
+    _emit_task_event(task_id, "runtime_sse", {
+        "session_id": session_id,
+        "session_index": session_index,
+        "event": event_name,
+        "data": payload,
+    })
+
+
+def _normalize_messages(messages_data: Any) -> list[dict]:
+    if isinstance(messages_data, list):
+        return [m for m in messages_data if isinstance(m, dict)]
+    if isinstance(messages_data, dict):
+        messages = (
+            messages_data.get("messages")
+            or messages_data.get("items")
+            or messages_data.get("data")
+            or []
+        )
+        if isinstance(messages, list):
+            return [m for m in messages if isinstance(m, dict)]
+    return []
+
+
+def _emit_task_event(task_id: str, event_type: str, data: dict[str, Any]):
+    seq = int(_task_event_seq.get(task_id, 0)) + 1
+    _task_event_seq[task_id] = seq
+    event = {
+        "seq": seq,
+        "type": event_type,
+        "data": data,
+        "at": now_iso(),
+    }
+    buf = _task_events.setdefault(task_id, [])
+    buf.append(event)
+    if len(buf) > _EVENT_BUFFER_LIMIT:
+        del buf[:-_EVENT_BUFFER_LIMIT]
+
+
+def _payload_indicates_credit_exhausted(payload: Any) -> bool:
+    """Return True when payload clearly indicates credit/quota exhaustion."""
+    if credit_monitor.is_credit_error(str(payload)):
+        return True
+
+    if isinstance(payload, dict):
+        p_type = str(payload.get("type") or "").strip().lower()
+        if p_type == "session.error":
+            props = payload.get("properties")
+            if isinstance(props, dict):
+                err = props.get("error")
+                if isinstance(err, dict):
+                    err_type = str(err.get("type") or "").strip().lower()
+                    err_message = str(err.get("message") or "")
+                    err_status = str(err.get("status") or "").strip()
+                    if err_type in {"credit", "credits", "quota"}:
+                        return True
+                    if err_status == "402" and credit_monitor.is_credit_error(err_message):
+                        return True
+    return False
 
 
 async def _handle_credit_exhausted(project_name: str, task_id: str,
@@ -501,7 +826,7 @@ async def _handle_credit_exhausted(project_name: str, task_id: str,
         return "blocked"
 
     # Auto mode: sync and continue
-    await _sync_and_push(project_name, task_id, task, account, "credit_exhausted")
+    commit_hash = await _sync_and_push(project_name, task_id, task, account, "credit_exhausted")
 
     # Release and mark account exhausted
     used_ids = task.get("used_account_ids", [])
@@ -518,6 +843,7 @@ async def _handle_credit_exhausted(project_name: str, task_id: str,
         "started_at": task.get("updated_at"),
         "ended_at": now_iso(),
         "end_reason": "credit_exhausted",
+        "git_commit": commit_hash,
     })
 
     update_task(project_name, task_id, {
@@ -542,7 +868,7 @@ async def _sync_and_push(project_name: str, task_id: str,
 
     if not runtime_host or not project_token:
         logger.warning(f"Task {task_id}: no runtime info, skip workspace sync")
-        return
+        return None
 
     update_task(project_name, task_id, {"status": "syncing"})
 
@@ -562,8 +888,10 @@ async def _sync_and_push(project_name: str, task_id: str,
         )
         if commit:
             logger.info(f"Task {task_id}: pushed commit {commit}")
+        return commit
     except Exception as e:
         logger.error(f"Task {task_id}: git push failed: {e}")
+        return None
 
 
 def _extract_message_text(msg: dict) -> str:
