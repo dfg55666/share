@@ -1,0 +1,111 @@
+{
+  "task_id": 1,
+  "provider_type": "atoms",
+  "success": true,
+  "email": "ella57881@deltajohnsons.com",
+  "password": "@#Dfg55666",
+  "tab_id": 1629953669,
+  "turnstile_click": {
+    "x": 44.0,
+    "y": 595.0
+  },
+  "turnstile_sitekey": "0x4AAAAAABm2ODs7WKuQtDuP",
+  "captcha_len_attempt_1": 1072,
+  "send_magic_link_attempt_1": {
+    "code": 0,
+    "message": "Success.",
+    "data": {
+      "success": true
+    },
+    "now_ts": 1777974162.74361
+  },
+  "send_magic_link": {
+    "code": 0,
+    "message": "Success.",
+    "data": {
+      "success": true
+    },
+    "now_ts": 1777974162.74361
+  },
+  "verification_token": "8cf6830e96ab4edc844c9aaad1deea94",
+  "verify_magic_link": {
+    "code": 0,
+    "message": "Success.",
+    "data": {
+      "verified": true,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODA1NjYxOTcsInVzZXJfaWQiOjExOTA5MzIsImVtYWlsIjoiZWxsYTU3ODgxQGRlbHRham9obnNvbnMuY29tIiwicHYiOjB9.RWIel5cV6P5SycmDnfGWBXbR2JcbMzrak8i9oYI7GnU",
+      "user": {
+        "id": 1190932,
+        "username": "Atoms_AF7VGE7I",
+        "avatar": null,
+        "email": "ella57881@deltajohnsons.com",
+        "status": "active",
+        "role": "regular",
+        "created_at": "2026-05-05T09:43:16.692641Z",
+        "updated_at": "2026-05-05T09:43:16.692656Z",
+        "disk_quota_exceeded": false,
+        "lang": "en"
+      }
+    },
+    "now_ts": 1777974197.035595
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODA1NjYxOTcsInVzZXJfaWQiOjExOTA5MzIsImVtYWlsIjoiZWxsYTU3ODgxQGRlbHRham9obnNvbnMuY29tIiwicHYiOjB9.RWIel5cV6P5SycmDnfGWBXbR2JcbMzrak8i9oYI7GnU",
+  "user": {
+    "id": 1190932,
+    "username": "Atoms_AF7VGE7I",
+    "avatar": null,
+    "email": "ella57881@deltajohnsons.com",
+    "status": "active",
+    "role": "regular",
+    "created_at": "2026-05-05T09:43:16.692641Z",
+    "updated_at": "2026-05-05T09:43:16.692656Z",
+    "disk_quota_exceeded": false,
+    "lang": "en"
+  },
+  "user_id": 1190932,
+  "balance": {
+    "code": 0,
+    "message": "Success.",
+    "data": {
+      "plan": "free",
+      "is_restricted": true,
+      "start_at": "2026-05-05T09:43:17Z",
+      "end_at": "2026-06-05T09:43:17Z",
+      "status": "subscribed",
+      "billing_period": "month",
+      "bonus_quota": 0,
+      "bonus_used": 0,
+      "paid_monthly_quota_total": 0,
+      "paid_monthly_quota_used": 0,
+      "daily_free_quota_used": 0,
+      "daily_free_quota_limit": 1500000,
+      "next_plan": null,
+      "reset_at": "2026-05-05T09:43:17Z",
+      "free_monthly_quota_total": 2500000,
+      "free_monthly_quota_used": 0,
+      "quota_useup_at": null,
+      "has_successful_subscription_purchase": false,
+      "discount_eligibility": {
+        "first_preview_discount": {
+          "in_treatment": false,
+          "experiment_key": null,
+          "experiment_group": null,
+          "ab_reason": null,
+          "has_successful_subscription_purchase": false,
+          "purchase_history_eligible": true,
+          "audience_eligible": true
+        },
+        "chat_high_active_discount": {
+          "in_treatment": false,
+          "experiment_key": null,
+          "experiment_group": null,
+          "ab_reason": null,
+          "has_successful_subscription_purchase": false,
+          "purchase_history_eligible": true,
+          "audience_eligible": true
+        }
+      }
+    },
+    "now_ts": 1777974197.339508
+  }
+}

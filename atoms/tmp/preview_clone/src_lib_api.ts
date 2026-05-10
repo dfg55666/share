@@ -1,0 +1,5 @@
+import { createClient } from "/node_modules/.vite/deps/@metagptx_web-sdk.js?v=ba0f810c";
+// Create client instance
+export const client = createClient();
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImFwaS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBjcmVhdGVDbGllbnQgfSBmcm9tICdAbWV0YWdwdHgvd2ViLXNkayc7XG5cbi8vIENyZWF0ZSBjbGllbnQgaW5zdGFuY2VcbmV4cG9ydCBjb25zdCBjbGllbnQgPSBjcmVhdGVDbGllbnQoKTsiXSwibmFtZXMiOlsiY3JlYXRlQ2xpZW50IiwiY2xpZW50Il0sIm1hcHBpbmdzIjoiQUFBQSxTQUFTQSxZQUFZLFFBQVEsb0JBQW9CO0FBRWpELHlCQUF5QjtBQUN6QixPQUFPLE1BQU1DLFNBQVNELGVBQWUifQ==
